@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """
-Output Ubuntu Server LaunchPad bugs for triage on a particular day.
+Output Ubuntu Server LaunchPad bugs that for triage. Script accepts either
+a single date or inclusive range to find bugs.
 
 Copyright 2016 Canonical Ltd.
 Joshua Powers <josh.powers@canonical.com>
