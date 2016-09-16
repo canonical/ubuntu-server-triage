@@ -13,7 +13,6 @@ import logging
 import os
 import sys
 
-
 from launchpadlib.launchpad import Launchpad
 
 
@@ -72,12 +71,11 @@ def bug_info(bugs):
     in by the script, like last_updated, web link, title. This however
     takes a considerable amount of time.
     """
-    logging.debug('Getting bug information')
     bug_list = []
     for bug in bugs:
-        num = bug.title.split(' ')[1].replace('#', '')
-        src = bug.title.split(' ')[3]
-        title = ' '.join(bug.title.split(' ')[5:]).replace('"', '')
+        num = bug.split(' ')[1].replace('#', '')
+        src = bug.split(' ')[3]
+        title = ' '.join(bug.split(' ')[5:]).replace('"', '')
         bug_list.append((num, src, title))
 
     bug_list.sort(key=lambda tup: tup[0])
@@ -85,33 +83,41 @@ def bug_info(bugs):
     return bug_list
 
 
-def find_bugs(launchpad, start, end):
+def modified_bugs(date):
+    """
+    Returns a list of bugs modified after a specific date.
+    """
+    # Distribution List: https://launchpad.net/distros
+    # API Doc: https://launchpad.net/+apidoc/1.0.html
+    launchpad = connect_launchpad()
+    project = launchpad.distributions['Ubuntu']
+    team = launchpad.people['ubuntu-server']
+
+    raw_bugs = project.searchTasks(modified_since=date,
+                                   structural_subscriber=team)
+
+    bugs = [bug.title for bug in raw_bugs]
+    logging.debug('Bug count for %s: %s', date, len(bugs))
+
+    return bugs
+
+
+def create_bug_list(start_date, end_date):
     """
     Subtracts all bugs modified after specified start and end dates.
 
     This provides the list of bugs between two dates as LaunchPad does
     not appear to have a specific function for searching for a range.
     """
-    # Distribution List: https://launchpad.net/distros
-    # API Doc: https://launchpad.net/+apidoc/1.0.html
-    project = launchpad.distributions['Ubuntu']
-    team = launchpad.people['ubuntu-server']
-
-    start, end = check_dates(start, end)
-
     logging.info('Please be paitent, this can take a few minutes...')
-    bugs_start = project.searchTasks(modified_since=start,
-                                     structural_subscriber=team)
-    logging.debug('Start date bug count: %s', len(bugs_start))
+    start_date, end_date = check_dates(start_date, end_date)
 
-    bugs_end = project.searchTasks(modified_since=end,
-                                   structural_subscriber=team)
-    logging.debug('End date bug count: %s', len(bugs_end))
+    start_bugs = modified_bugs(start_date)
+    end_bugs = modified_bugs(end_date)
 
-    bugs_start = set(bugs_start)
-    bugs = [x for x in bugs_start if x not in bugs_end]
-
+    bugs = [x for x in start_bugs if x not in end_bugs]
     bug_list = bug_info(bugs)
+
     logging.info('Found %s bugs', len(bug_list))
     logging.info('---')
 
@@ -125,9 +131,9 @@ def main(start, end=None):
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
                         level=LOG_LEVEL)
 
+    connect_launchpad()
     logging.info('Ubuntu Server Bug List')
-    launchpad = connect_launchpad()
-    bugs = find_bugs(launchpad, start, end)
+    bugs = create_bug_list(start, end)
     print_bugs(bugs)
 
 
