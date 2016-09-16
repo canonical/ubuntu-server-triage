@@ -7,13 +7,14 @@ Copyright 2016 Canonical Ltd.
 Joshua Powers <josh.powers@canonical.com>
 """
 import argparse
-import collections
 from datetime import datetime, timedelta
 import getpass
-from launchpadlib.launchpad import Launchpad
 import logging
 import os
 import sys
+
+
+from launchpadlib.launchpad import Launchpad
 
 
 LOG_LEVEL = logging.INFO
@@ -32,14 +33,6 @@ def connect_launchpad():
     return Launchpad.login_with(username, 'production', cachedir)
 
 
-def print_bugs(bugs):
-    """
-    Prints the bugs in a clean-ish format.
-    """
-    for bug in sorted(bugs, key=lambda bug: bug.date):
-        logging.info('[%s] %-39s - %s' % (bug.date, bug.link, bug.title))
-
-
 def check_dates(start, end):
     """
     Validate dates are setup correctly so we can print the range
@@ -50,7 +43,7 @@ def check_dates(start, end):
     if not end:
         end = start
 
-    logging.info('%s to %s (inclusive)' % (start, end))
+    logging.info('%s to %s (inclusive)', start, end)
 
     # If the days are equal, add one to end otherwise this will
     # return an empty list.
@@ -62,22 +55,32 @@ def check_dates(start, end):
     return start, end
 
 
-def detailed_bugs(bugs_start, bugs_end):
+def print_bugs(bugs):
     """
-    Collects the specific information from each bug, versus just the id.
-
-    Returns a named tuple of the last modified date, weblink, and title.
+    Prints the bugs in a clean-ish format.
     """
-    logging.info('Getting detailed bug information')
-    logging.info('Please be paitent, this can take a few minutes...')
-    logging.info('---')
+    for bug in bugs:
+        bug_url = 'https://bugs.launchpad.net/bugs/'
+        logging.info('%s%-7s - [%s] %s', bug_url, bug[0], bug[1], bug[2])
 
+
+def bug_info(bugs):
+    """
+    Collects the specific information for each bug entry.
+
+    If detailed information is specified, than additional data is pulled
+    in by the script, like last_updated, web link, title. This however
+    takes a considerable amount of time.
+    """
+    logging.debug('Getting bug information')
     bug_list = []
-    Bug = collections.namedtuple('Bug', 'date link title')
-    for bug in filter(lambda x: x not in bugs_end, bugs_start):
-        bug_list.append(Bug(date=str(bug.bug.date_last_updated)[:19],
-                            link=bug.bug.web_link,
-                            title=bug.bug.title))
+    for bug in bugs:
+        num = bug.title.split(' ')[1].replace('#', '')
+        src = bug.title.split(' ')[3]
+        title = ' '.join(bug.title.split(' ')[5:]).replace('"', '')
+        bug_list.append((num, src, title))
+
+    bug_list.sort(key=lambda tup: tup[0])
 
     return bug_list
 
@@ -89,13 +92,14 @@ def find_bugs(launchpad, start, end):
     This provides the list of bugs between two dates as LaunchPad does
     not appear to have a specific function for searching for a range.
     """
-    start, end = check_dates(start, end)
-
     # Distribution List: https://launchpad.net/distros
     # API Doc: https://launchpad.net/+apidoc/1.0.html
     project = launchpad.distributions['Ubuntu']
     team = launchpad.people['ubuntu-server']
 
+    start, end = check_dates(start, end)
+
+    logging.info('Please be paitent, this can take a few minutes...')
     bugs_start = project.searchTasks(modified_since=start,
                                      structural_subscriber=team)
     logging.debug('Start date bug count: %s', len(bugs_start))
@@ -104,9 +108,14 @@ def find_bugs(launchpad, start, end):
                                    structural_subscriber=team)
     logging.debug('End date bug count: %s', len(bugs_end))
 
-    logging.info('Found %i bugs' % (len(bugs_start) - len(bugs_end)))
+    bugs_start = set(bugs_start)
+    bugs = [x for x in bugs_start if x not in bugs_end]
 
-    return detailed_bugs(bugs_start, bugs_end)
+    bug_list = bug_info(bugs)
+    logging.info('Found %s bugs', len(bug_list))
+    logging.info('---')
+
+    return bug_list
 
 
 def main(start, end=None):
@@ -123,14 +132,20 @@ def main(start, end=None):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('start_date',
+    PARSER = argparse.ArgumentParser()
+    PARSER.add_argument('start_date',
                         help='date to start finding bugs ' +
-                             '(e.g. 2016-07-15)')
-    parser.add_argument('end_date',
+                        '(e.g. 2016-07-15)')
+    PARSER.add_argument('end_date',
                         nargs='?',
                         help='date to end finding bugs (inclusive) ' +
-                             '(e.g. 2016-07-31)')
+                        '(e.g. 2016-07-31)')
+    PARSER.add_argument('-d', '--debug', action='store_true',
+                        help='debug output')
 
-    args = parser.parse_args()
-    main(args.start_date, args.end_date)
+    ARGS = PARSER.parse_args()
+
+    if ARGS.debug:
+        LOG_LEVEL = logging.DEBUG
+
+    main(ARGS.start_date, ARGS.end_date)
