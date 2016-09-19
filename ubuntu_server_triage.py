@@ -32,7 +32,7 @@ def connect_launchpad():
     return Launchpad.login_with(username, 'production', cachedir)
 
 
-def check_dates(start, end):
+def check_dates(start, end=None):
     """
     Validate dates are setup correctly so we can print the range
     and then be inclusive in dates.
@@ -44,12 +44,11 @@ def check_dates(start, end):
 
     logging.info('%s to %s (inclusive)', start, end)
 
-    # If the days are equal, add one to end otherwise this will
-    # return an empty list.
-    if start == end:
-        logging.debug('Adding one day to end date')
-        end = datetime.strptime(start, '%Y-%m-%d') + timedelta(days=1)
-        end = end.strftime('%Y-%m-%d')
+    # Always add one to end date to make the dates inclusive
+    end = datetime.strptime(end, '%Y-%m-%d') + timedelta(days=1)
+    end = end.strftime('%Y-%m-%d')
+
+    logging.debug('Searching for %s and %s', start, end)
 
     return start, end
 
