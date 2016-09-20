@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Output Ubuntu Server LaunchPad bugs that for triage. Script accepts either
+Output Ubuntu Server Launchpad bugs that for triage. Script accepts either
 a single date or inclusive range to find bugs.
 
 Copyright 2016 Canonical Ltd.
@@ -23,7 +23,7 @@ def connect_launchpad():
     """
     Using the launchpad module connect to launchpad.
 
-    Will connect you to the LaunchPad website the first time you run
+    Will connect you to the Launchpad website the first time you run
     this to autorize your system to connect.
     """
     username = getpass.getuser()
@@ -105,7 +105,7 @@ def create_bug_list(start_date, end_date):
     """
     Subtracts all bugs modified after specified start and end dates.
 
-    This provides the list of bugs between two dates as LaunchPad does
+    This provides the list of bugs between two dates as Launchpad does
     not appear to have a specific function for searching for a range.
     """
     logging.info('Please be paitent, this can take a few minutes...')
@@ -125,7 +125,7 @@ def create_bug_list(start_date, end_date):
 
 def main(start, end=None):
     """
-    Connect to LaunchPad, get range of bugs, print 'em.
+    Connect to Launchpad, get range of bugs, print 'em.
     """
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
                         level=LOG_LEVEL)
