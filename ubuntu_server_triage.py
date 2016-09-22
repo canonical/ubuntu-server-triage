@@ -86,7 +86,7 @@ def bug_info(bugs):
     return bug_list
 
 
-def modified_bugs(date):
+def modified_bugs(date, lpname):
     """
     Returns a list of bugs modified after a specific date.
     """
@@ -94,7 +94,7 @@ def modified_bugs(date):
     # API Doc: https://launchpad.net/+apidoc/1.0.html
     launchpad = connect_launchpad()
     project = launchpad.distributions['Ubuntu']
-    team = launchpad.people['ubuntu-server']
+    team = launchpad.people[lpname]
 
     # modified and structural_subscriber sans already subscribed by lpname
     mod_bugs = project.searchTasks(modified_since=date,
@@ -110,7 +110,7 @@ def modified_bugs(date):
     return bugs
 
 
-def create_bug_list(start_date, end_date):
+def create_bug_list(start_date, end_date, lpname):
     """
     Subtracts all bugs modified after specified start and end dates.
 
@@ -120,10 +120,10 @@ def create_bug_list(start_date, end_date):
     logging.info('Please be paitent, this can take a few minutes...')
     start_date, end_date = check_dates(start_date, end_date)
 
-    start_bugs = modified_bugs(start_date)
-    end_bugs = modified_bugs(end_date)
-
+    start_bugs = modified_bugs(start_date, lpname)
+    end_bugs = modified_bugs(end_date, lpname)
     bugs = [x for x in start_bugs if x not in end_bugs]
+
     bug_list = bug_info(bugs)
 
     logging.info('Found %s bugs', len(bug_list))
@@ -132,7 +132,7 @@ def create_bug_list(start_date, end_date):
     return bug_list
 
 
-def main(start, end=None, open_in_browser=False):
+def main(start=None, end=None, open_in_browser=False, lpname="ubuntu-server"):
     """
     Connect to Launchpad, get range of bugs, print 'em.
     """
@@ -141,7 +141,7 @@ def main(start, end=None, open_in_browser=False):
 
     connect_launchpad()
     logging.info('Ubuntu Server Bug List')
-    bugs = create_bug_list(start, end)
+    bugs = create_bug_list(start, end, lpname)
     print_bugs(bugs, open_in_browser)
 
 
@@ -158,10 +158,12 @@ if __name__ == '__main__':
                         help='debug output')
     PARSER.add_argument('-o', '--open', action='store_true',
                         help='open in web browser')
+    PARSER.add_argument('-n', '--lpname', default='ubuntu-server',
+                        help='specify the launchpad name to search for')
 
     ARGS = PARSER.parse_args()
 
     if ARGS.debug:
         LOG_LEVEL = logging.DEBUG
 
-    main(ARGS.start_date, ARGS.end_date, ARGS.open)
+    main(ARGS.start_date, ARGS.end_date, ARGS.open, ARGS.lpname)
