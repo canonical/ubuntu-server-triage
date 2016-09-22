@@ -38,6 +38,11 @@ def check_dates(start, end=None):
     Validate dates are setup correctly so we can print the range
     and then be inclusive in dates.
     """
+    # if start date is not set we search all bugs of a LP user/team
+    if not start:
+        logging.info('Searching all bugs, no date filter')
+        return datetime.min, datetime.now()
+
     # If end date is not set set it to start so we can
     # properly show the inclusive list of dates.
     if not end:
@@ -161,6 +166,7 @@ def main(start=None, end=None, open_in_browser=False, lpname="ubuntu-server"):
 if __name__ == '__main__':
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument('start_date',
+                        nargs='?',
                         help='date to start finding bugs ' +
                         '(e.g. 2016-07-15)')
     PARSER.add_argument('end_date',
