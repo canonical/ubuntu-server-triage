@@ -92,8 +92,13 @@ def modified_bugs(date):
     project = launchpad.distributions['Ubuntu']
     team = launchpad.people['ubuntu-server']
 
-    raw_bugs = project.searchTasks(modified_since=date,
+    # modified and structural_subscriber sans already subscribed by lpname
+    mod_bugs = project.searchTasks(modified_since=date,
                                    structural_subscriber=team)
+    already_sub_bugs = project.searchTasks(modified_since=date,
+                                           structural_subscriber=team,
+                                           bug_subscriber=team)
+    raw_bugs = [b for b in mod_bugs if b not in already_sub_bugs]
 
     bugs = [bug.title for bug in raw_bugs]
     logging.debug('Bug count for %s: %s', date, len(bugs))
