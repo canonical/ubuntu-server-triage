@@ -131,6 +131,18 @@ def create_bug_list(start_date, end_date, lpname):
 
     return bug_list
 
+def report_current_backlog(lpname):
+    """
+    Reports how much bugs the team is currently subscribed to.
+
+    This value is usually needed to track how the backlog is growing/shrinking.
+    """
+    launchpad = connect_launchpad()
+    project = launchpad.distributions['Ubuntu']
+    team = launchpad.people[lpname]
+    sub_bugs = project.searchTasks(bug_subscriber=team)
+    logging.info('Team %s currently subscribed to %d bugs',
+                 lpname, len(sub_bugs))
 
 def main(start=None, end=None, open_in_browser=False, lpname="ubuntu-server"):
     """
@@ -141,6 +153,7 @@ def main(start=None, end=None, open_in_browser=False, lpname="ubuntu-server"):
 
     connect_launchpad()
     logging.info('Ubuntu Server Bug List')
+    report_current_backlog(lpname)
     bugs = create_bug_list(start, end, lpname)
     print_bugs(bugs, open_in_browser)
 
