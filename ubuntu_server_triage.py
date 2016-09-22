@@ -91,7 +91,7 @@ def bug_info(bugs):
     return bug_list
 
 
-def modified_bugs(date, lpname):
+def modified_bugs(date, lpname, bugsubscriber):
     """
     Returns a list of bugs modified after a specific date.
     """
@@ -101,13 +101,18 @@ def modified_bugs(date, lpname):
     project = launchpad.distributions['Ubuntu']
     team = launchpad.people[lpname]
 
-    # modified and structural_subscriber sans already subscribed by lpname
-    mod_bugs = project.searchTasks(modified_since=date,
-                                   structural_subscriber=team)
-    already_sub_bugs = project.searchTasks(modified_since=date,
-                                           structural_subscriber=team,
-                                           bug_subscriber=team)
-    raw_bugs = [b for b in mod_bugs if b not in already_sub_bugs]
+    if bugsubscriber:
+        # direct subscriber
+        raw_bugs = project.searchTasks(modified_since=date,
+                                       bug_subscriber=team)
+    else:
+        # structural_subscriber sans already subscribed
+        mod_bugs = project.searchTasks(modified_since=date,
+                                       structural_subscriber=team)
+        already_sub_bugs = project.searchTasks(modified_since=date,
+                                               structural_subscriber=team,
+                                               bug_subscriber=team)
+        raw_bugs = [b for b in mod_bugs if b not in already_sub_bugs]
 
     bugs = [(bug.title, bug.status) for bug in raw_bugs]
     logging.debug('Bug count for %s: %s', date, len(bugs))
@@ -115,7 +120,7 @@ def modified_bugs(date, lpname):
     return bugs
 
 
-def create_bug_list(start_date, end_date, lpname):
+def create_bug_list(start_date, end_date, lpname, bugsubscriber):
     """
     Subtracts all bugs modified after specified start and end dates.
 
@@ -125,8 +130,8 @@ def create_bug_list(start_date, end_date, lpname):
     logging.info('Please be paitent, this can take a few minutes...')
     start_date, end_date = check_dates(start_date, end_date)
 
-    start_bugs = modified_bugs(start_date, lpname)
-    end_bugs = modified_bugs(end_date, lpname)
+    start_bugs = modified_bugs(start_date, lpname, bugsubscriber)
+    end_bugs = modified_bugs(end_date, lpname, bugsubscriber)
     bugs = [x for x in start_bugs if x not in end_bugs]
 
     bug_list = bug_info(bugs)
@@ -149,7 +154,8 @@ def report_current_backlog(lpname):
     logging.info('Team %s currently subscribed to %d bugs',
                  lpname, len(sub_bugs))
 
-def main(start=None, end=None, open_in_browser=False, lpname="ubuntu-server"):
+def main(start=None, end=None, open_in_browser=False, lpname="ubuntu-server",
+         bugsubscriber=False):
     """
     Connect to Launchpad, get range of bugs, print 'em.
     """
@@ -159,7 +165,7 @@ def main(start=None, end=None, open_in_browser=False, lpname="ubuntu-server"):
     connect_launchpad()
     logging.info('Ubuntu Server Bug List')
     report_current_backlog(lpname)
-    bugs = create_bug_list(start, end, lpname)
+    bugs = create_bug_list(start, end, lpname, bugsubscriber)
     print_bugs(bugs, open_in_browser)
 
 
@@ -179,10 +185,14 @@ if __name__ == '__main__':
                         help='open in web browser')
     PARSER.add_argument('-n', '--lpname', default='ubuntu-server',
                         help='specify the launchpad name to search for')
+    PARSER.add_argument('-b', '--bugsubscriber', action='store_true',
+                        help=('filter name as bug subscriber (default would '
+                              'be structural subscriber'))
 
     ARGS = PARSER.parse_args()
 
     if ARGS.debug:
         LOG_LEVEL = logging.DEBUG
 
-    main(ARGS.start_date, ARGS.end_date, ARGS.open, ARGS.lpname)
+    main(ARGS.start_date, ARGS.end_date, ARGS.open, ARGS.lpname,
+         ARGS.bugsubscriber)
