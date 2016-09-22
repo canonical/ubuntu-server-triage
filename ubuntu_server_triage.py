@@ -59,8 +59,8 @@ def print_bugs(bugs):
     """
     for bug in bugs:
         bug_url = 'https://bugs.launchpad.net/bugs/'
-        logging.info('%s%-7s - %14s - [%s] %s',
-                     bug_url, bug[0], bug[3], bug[1], bug[2])
+        logging.info('%s%-7s - %-14s %-16s - %s',
+                     bug_url, bug[0], bug[3], ('[%s]' % bug[1]), bug[2])
 
 
 def bug_info(bugs):
