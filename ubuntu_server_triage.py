@@ -59,7 +59,8 @@ def print_bugs(bugs):
     """
     for bug in bugs:
         bug_url = 'https://bugs.launchpad.net/bugs/'
-        logging.info('%s%-7s - [%s] %s', bug_url, bug[0], bug[1], bug[2])
+        logging.info('%s%-7s - %14s - [%s] %s',
+                     bug_url, bug[0], bug[3], bug[1], bug[2])
 
 
 def bug_info(bugs):
@@ -71,11 +72,11 @@ def bug_info(bugs):
     takes a considerable amount of time.
     """
     bug_list = []
-    for bug in bugs:
+    for (bug, status) in bugs:
         num = bug.split(' ')[1].replace('#', '')
         src = bug.split(' ')[3]
         title = ' '.join(bug.split(' ')[5:]).replace('"', '')
-        bug_list.append((num, src, title))
+        bug_list.append((num, src, title, status))
 
     bug_list.sort(key=lambda tup: tup[0])
 
@@ -100,7 +101,7 @@ def modified_bugs(date):
                                            bug_subscriber=team)
     raw_bugs = [b for b in mod_bugs if b not in already_sub_bugs]
 
-    bugs = [bug.title for bug in raw_bugs]
+    bugs = [(bug.title, bug.status) for bug in raw_bugs]
     logging.debug('Bug count for %s: %s', date, len(bugs))
 
     return bugs
