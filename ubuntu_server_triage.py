@@ -12,6 +12,7 @@ import getpass
 import logging
 import os
 import sys
+import webbrowser
 
 from launchpadlib.launchpad import Launchpad
 
@@ -53,7 +54,7 @@ def check_dates(start, end=None):
     return start, end
 
 
-def print_bugs(bugs):
+def print_bugs(bugs, open_in_browser=False):
     """
     Prints the bugs in a clean-ish format.
     """
@@ -61,6 +62,8 @@ def print_bugs(bugs):
         bug_url = 'https://bugs.launchpad.net/bugs/'
         logging.info('%s%-7s - %-14s %-16s - %s',
                      bug_url, bug[0], bug[3], ('[%s]' % bug[1]), bug[2])
+        if open_in_browser:
+            webbrowser.open("%s%s" % (bug_url, bug[0]))
 
 
 def bug_info(bugs):
@@ -129,7 +132,7 @@ def create_bug_list(start_date, end_date):
     return bug_list
 
 
-def main(start, end=None):
+def main(start, end=None, open_in_browser=False):
     """
     Connect to Launchpad, get range of bugs, print 'em.
     """
@@ -139,7 +142,7 @@ def main(start, end=None):
     connect_launchpad()
     logging.info('Ubuntu Server Bug List')
     bugs = create_bug_list(start, end)
-    print_bugs(bugs)
+    print_bugs(bugs, open_in_browser)
 
 
 if __name__ == '__main__':
@@ -153,10 +156,12 @@ if __name__ == '__main__':
                         '(e.g. 2016-07-31)')
     PARSER.add_argument('-d', '--debug', action='store_true',
                         help='debug output')
+    PARSER.add_argument('-o', '--open', action='store_true',
+                        help='open in web browser')
 
     ARGS = PARSER.parse_args()
 
     if ARGS.debug:
         LOG_LEVEL = logging.DEBUG
 
-    main(ARGS.start_date, ARGS.end_date)
+    main(ARGS.start_date, ARGS.end_date, ARGS.open)
