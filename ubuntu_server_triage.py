@@ -66,7 +66,8 @@ def print_bugs(bugs, open_in_browser=False):
     for bug in bugs:
         bug_url = 'https://bugs.launchpad.net/bugs/'
         logging.info('%s%-7s - %-14s %-16s - %s',
-                     bug_url, bug[0], bug[3], ('[%s]' % bug[1]), bug[2])
+                     bug_url, bug[0], ('(%s)' % bug[3]),
+                     ('[%s]' % bug[1]), bug[2])
         if open_in_browser:
             webbrowser.open("%s%s" % (bug_url, bug[0]))
 
