@@ -44,8 +44,17 @@ def check_dates(start, end=None, nodatefilter=False):
             logging.info('Searching all bugs, no date filter')
             return datetime.min, datetime.now()
         else:
-            raise ValueError('No date set, please specify -a if you really '
-                             'want to search without date filter')
+            logging.info('No date set, auto-search yesterday/weekend for the '
+                         'most common triage.')
+            logging.info('Please specify -a if you really '
+                         'want to search without any date filter')
+            yesterday = datetime.now().date() - timedelta(days=1)
+            if yesterday.weekday() != 6:
+                start = yesterday.strftime('%Y-%m-%d')
+            else:
+                # include weekend if yesterday was a sunday
+                start = (yesterday - timedelta(days=2)).strftime('%Y-%m-%d')
+                end = yesterday.strftime('%Y-%m-%d')
 
     # If end date is not set set it to start so we can
     # properly show the inclusive list of dates.
