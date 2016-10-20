@@ -143,7 +143,7 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber, nodatefilter):
     This provides the list of bugs between two dates as Launchpad does
     not appear to have a specific function for searching for a range.
     """
-    logging.info('Please be paitent, this can take a few minutes...')
+    logging.info('Please be patient, this can take a few minutes...')
     start_date, end_date = check_dates(start_date, end_date, nodatefilter)
 
     start_bugs = modified_bugs(start_date, lpname, bugsubscriber)
