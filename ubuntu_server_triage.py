@@ -29,7 +29,6 @@ def connect_launchpad():
     """
     username = getpass.getuser()
     cachedir = os.path.join('/home', username, '.launchpadlib/cache/')
-    # Fails with Python3 due to lp# 1583741
     return Launchpad.login_with(username, 'production', cachedir)
 
 
