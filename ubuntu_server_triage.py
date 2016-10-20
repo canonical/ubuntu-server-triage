@@ -42,18 +42,18 @@ def check_dates(start, end=None, nodatefilter=False):
         if nodatefilter:
             logging.info('Searching all bugs, no date filter')
             return datetime.min, datetime.now()
+
+        logging.info('No date set, auto-search yesterday/weekend for the '
+                     'most common triage.')
+        logging.info('Please specify -a if you really '
+                     'want to search without any date filter')
+        yesterday = datetime.now().date() - timedelta(days=1)
+        if yesterday.weekday() != 6:
+            start = yesterday.strftime('%Y-%m-%d')
         else:
-            logging.info('No date set, auto-search yesterday/weekend for the '
-                         'most common triage.')
-            logging.info('Please specify -a if you really '
-                         'want to search without any date filter')
-            yesterday = datetime.now().date() - timedelta(days=1)
-            if yesterday.weekday() != 6:
-                start = yesterday.strftime('%Y-%m-%d')
-            else:
-                # include weekend if yesterday was a sunday
-                start = (yesterday - timedelta(days=2)).strftime('%Y-%m-%d')
-                end = yesterday.strftime('%Y-%m-%d')
+            # include weekend if yesterday was a sunday
+            start = (yesterday - timedelta(days=2)).strftime('%Y-%m-%d')
+            end = yesterday.strftime('%Y-%m-%d')
 
     # If end date is not set set it to start so we can
     # properly show the inclusive list of dates.
@@ -129,7 +129,10 @@ def modified_bugs(start_date, end_date, lpname, bugsubscriber):
             task.self_link: task for task in project.searchTasks(
                 modified_since=end_date, bug_subscriber=team
             )}
-        already_sub_since_start = {}  # N/A for direct subscribers
+
+        # N/A for direct subscribers
+        already_sub_since_start = {}
+
     else:
         # structural_subscriber sans already subscribed
         bugs_since_start = {
@@ -178,6 +181,7 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber, nodatefilter):
 
     return bug_list
 
+
 def report_current_backlog(lpname):
     """
     Reports how much bugs the team is currently subscribed to.
@@ -190,6 +194,8 @@ def report_current_backlog(lpname):
     sub_bugs = project.searchTasks(bug_subscriber=team)
     logging.info('Team %s currently subscribed to %d bugs',
                  lpname, len(sub_bugs))
+    logging.info('---')
+
 
 def main(start=None, end=None, open_in_browser=False, lpname="ubuntu-server",
          bugsubscriber=False, nodatefilter=False, shortlinks=True):
@@ -201,8 +207,8 @@ def main(start=None, end=None, open_in_browser=False, lpname="ubuntu-server",
 
     connect_launchpad()
     logging.info('Ubuntu Server Bug List')
-    bugs = create_bug_list(start, end, lpname, bugsubscriber, nodatefilter)
     report_current_backlog(lpname)
+    bugs = create_bug_list(start, end, lpname, bugsubscriber, nodatefilter)
     print_bugs(bugs, open_in_browser, shortlinks)
 
 
@@ -229,7 +235,6 @@ if __name__ == '__main__':
                               'be structural subscriber'))
     PARSER.add_argument('--fullurls', default=False, action='store_true',
                         help='show full URLs instead of shortcuts')
-
 
     ARGS = PARSER.parse_args()
 
