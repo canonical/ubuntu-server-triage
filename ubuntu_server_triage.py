@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Output Ubuntu Server Launchpad bugs that for triage. Script accepts either
 a single date or inclusive range to find bugs.
