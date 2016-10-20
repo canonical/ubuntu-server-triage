@@ -23,6 +23,12 @@ If two dates are given then all the bugs found on those days and between (fully 
 ./ubuntu_server_triage.py 2016-09-10 2016-09-12
 ```
 
+## Follow bug links
+By default the script outputs links of the form "LP: #XXXXXX". Ubuntu's
+default browser, gnome-terminal, makes these appear as hyperlinks
+automatically, saving space and leaving more for the bug titles. If
+instead you'd like full URLs, use `--fullurls`.
+
 ## Open Bugs in Browser
 Quite commonly the triager wants to open all bugs in the browser, to read, review and manage them. Via ``open`` argument that can be done automatically.
 ```
