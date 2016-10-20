@@ -106,11 +106,10 @@ def bug_info(bugs):
     return bug_list
 
 
-def modified_bugs(date, lpname, bugsubscriber):
+def modified_bugs(start_date, end_date, lpname, bugsubscriber):
     """
-    Returns a list of bugs modified after a specific date.
+    Returns a list of bugs modified between dates.
     """
-    already_sub_bugs = []
     # Distribution List: https://launchpad.net/distros
     # API Doc: https://launchpad.net/+apidoc/1.0.html
     launchpad = connect_launchpad()
@@ -119,19 +118,40 @@ def modified_bugs(date, lpname, bugsubscriber):
 
     if bugsubscriber:
         # direct subscriber
-        raw_bugs = project.searchTasks(modified_since=date,
-                                       bug_subscriber=team)
+        bugs_since_start = {
+            task.self_link: task for task in project.searchTasks(
+                modified_since=start_date, bug_subscriber=team
+            )}
+        bugs_since_end = {
+            task.self_link: task for task in project.searchTasks(
+                modified_since=end_date, bug_subscriber=team
+            )}
+        already_sub_since_start = {}  # N/A for direct subscribers
     else:
         # structural_subscriber sans already subscribed
-        mod_bugs = project.searchTasks(modified_since=date,
-                                       structural_subscriber=team)
-        already_sub = project.searchTasks(modified_since=date,
-                                          structural_subscriber=team,
-                                          bug_subscriber=team)
-        raw_bugs = [b for b in mod_bugs if b not in already_sub_bugs]
+        bugs_since_start = {
+            task.self_link: task for task in project.searchTasks(
+                modified_since=start_date, structural_subscriber=team
+            )}
+        bugs_since_end = {
+            task.self_link: task for task in project.searchTasks(
+                modified_since=end_date, structural_subscriber=team
+            )}
+        already_sub_since_start = {
+            task.self_link: task for task in project.searchTasks(
+                modified_since=start_date, structural_subscriber=team,
+                bug_subscriber=team
+            )}
 
-    bugs = [(bug.title, bug.status, (bug in already_sub)) for bug in raw_bugs]
-    logging.debug('Bug count for %s: %s', date, len(bugs))
+    bugs_in_range = {
+        task for link, task in bugs_since_start.iteritems()
+        if link not in bugs_since_end
+    }
+
+    bugs = {
+        (bug.title, bug.status, (bug in already_sub_since_start))
+        for bug in bugs_in_range
+    }
 
     return bugs
 
@@ -146,9 +166,7 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber, nodatefilter):
     logging.info('Please be paitent, this can take a few minutes...')
     start_date, end_date = check_dates(start_date, end_date, nodatefilter)
 
-    start_bugs = modified_bugs(start_date, lpname, bugsubscriber)
-    end_bugs = modified_bugs(end_date, lpname, bugsubscriber)
-    bugs = [x for x in start_bugs if x not in end_bugs]
+    bugs = modified_bugs(start_date, end_date, lpname, bugsubscriber)
 
     bug_list = bug_info(bugs)
 
