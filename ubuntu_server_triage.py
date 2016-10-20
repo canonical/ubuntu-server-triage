@@ -144,13 +144,13 @@ def modified_bugs(start_date, end_date, lpname, bugsubscriber):
             )}
 
     bugs_in_range = {
-        task for link, task in bugs_since_start.iteritems()
+        link: task for link, task in bugs_since_start.items()
         if link not in bugs_since_end
     }
 
     bugs = {
-        (bug.title, bug.status, (bug in already_sub_since_start))
-        for bug in bugs_in_range
+        (task.title, task.status, (link in already_sub_since_start))
+        for link, task in bugs_in_range.items()
     }
 
     return bugs
