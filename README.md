@@ -3,7 +3,7 @@ Output Ubuntu Server Launchpad bugs that for triage. Script accepts either a sin
 
 To obtain and run:
 ```
-wget https://raw.githubusercontent.com/powersj/ubuntu-sever-triage/master/ubuntu_server_triage.py
+wget https://raw.githubusercontent.com/powersj/ubuntu-server-triage/master/ubuntu_server_triage.py
 chmod +x ubuntu_server_triage.py 
 ./ubuntu_server_triage.py -h
 ```
