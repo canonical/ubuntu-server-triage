@@ -72,12 +72,16 @@ def check_dates(start, end=None, nodatefilter=False):
     return start, end
 
 
-def print_bugs(bugs, open_in_browser=False):
+def print_bugs(bugs, open_in_browser=False, shortlinks=True):
     """
     Prints the bugs in a clean-ish format.
     """
-    for bug in bugs:
+    if shortlinks:
+        bug_url = 'LP: #'
+    else:
         bug_url = 'https://bugs.launchpad.net/bugs/'
+
+    for bug in bugs:
         logging.info('%s%-7s - %-16s %-16s - %s',
                      bug_url, bug[0],
                      ('%s(%s)' % (('*' if bug[4] else ''), bug[3])),
@@ -171,7 +175,7 @@ def report_current_backlog(lpname):
                  lpname, len(sub_bugs))
 
 def main(start=None, end=None, open_in_browser=False, lpname="ubuntu-server",
-         bugsubscriber=False, nodatefilter=False):
+         bugsubscriber=False, nodatefilter=False, shortlinks=True):
     """
     Connect to Launchpad, get range of bugs, print 'em.
     """
@@ -182,7 +186,7 @@ def main(start=None, end=None, open_in_browser=False, lpname="ubuntu-server",
     logging.info('Ubuntu Server Bug List')
     bugs = create_bug_list(start, end, lpname, bugsubscriber, nodatefilter)
     report_current_backlog(lpname)
-    print_bugs(bugs, open_in_browser)
+    print_bugs(bugs, open_in_browser, shortlinks)
 
 
 if __name__ == '__main__':
@@ -206,6 +210,9 @@ if __name__ == '__main__':
     PARSER.add_argument('-b', '--bugsubscriber', action='store_true',
                         help=('filter name as bug subscriber (default would '
                               'be structural subscriber'))
+    PARSER.add_argument('--fullurls', default=False, action='store_true',
+                        help='show full URLs instead of shortcuts')
+
 
     ARGS = PARSER.parse_args()
 
@@ -213,4 +220,4 @@ if __name__ == '__main__':
         LOG_LEVEL = logging.DEBUG
 
     main(ARGS.start_date, ARGS.end_date, ARGS.open, ARGS.lpname,
-         ARGS.bugsubscriber, ARGS.nodatefilter)
+         ARGS.bugsubscriber, ARGS.nodatefilter, not ARGS.fullurls)
