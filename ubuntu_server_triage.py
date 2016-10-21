@@ -75,10 +75,12 @@ def print_bugs(bugs, open_in_browser=False, shortlinks=True):
     """
     Prints the bugs in a clean-ish format.
     """
+    launchpad_url = 'https://bugs.launchpad.net/bugs/'
+
     if shortlinks:
         bug_url = 'LP: #'
     else:
-        bug_url = 'https://bugs.launchpad.net/bugs/'
+        bug_url = launchpad_url
 
     for bug in bugs:
         logging.info('%s%-7s - %-16s %-16s - %s',
@@ -86,7 +88,7 @@ def print_bugs(bugs, open_in_browser=False, shortlinks=True):
                      ('%s(%s)' % (('*' if bug[4] else ''), bug[3])),
                      ('[%s]' % bug[1]), bug[2])
         if open_in_browser:
-            webbrowser.open("%s%s" % (bug_url, bug[0]))
+            webbrowser.open("%s%s" % (launchpad_url, bug[0]))
 
 
 def bug_info(bugs):
