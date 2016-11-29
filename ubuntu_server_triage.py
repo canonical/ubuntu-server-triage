@@ -8,7 +8,6 @@ Joshua Powers <josh.powers@canonical.com>
 """
 import argparse
 from datetime import datetime, timedelta
-import getpass
 import logging
 import os
 import sys
@@ -27,9 +26,7 @@ def connect_launchpad():
     Will connect you to the Launchpad website the first time you run
     this to autorize your system to connect.
     """
-    username = getpass.getuser()
-    cachedir = os.path.join('/home', username, '.launchpadlib/cache/')
-    return Launchpad.login_with(username, 'production', cachedir)
+    return Launchpad.login_with('ubuntu-server-triage.py', 'production')
 
 
 def check_dates(start, end=None, nodatefilter=False):
