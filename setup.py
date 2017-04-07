@@ -28,6 +28,6 @@ setup(name='ustriage',
       entry_points={
           'console_scripts': ['ustriage=ustriage.ustriage:launch']
       },
-      install_requires=['launchpadlib'],
+      install_requires=[],
       zip_safe=False
      )
