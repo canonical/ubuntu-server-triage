@@ -9,54 +9,55 @@ Joshua Powers <josh.powers@canonical.com>
 import argparse
 from datetime import datetime, timedelta
 import logging
-import os
 import sys
 import webbrowser
 
 from launchpadlib.launchpad import Launchpad
 
 
-LOG_LEVEL = logging.INFO
-
-
-class Task:
-    '''Our representation of a Launchpad task.
+class Task(object):
+    """
+    Our representation of a Launchpad task.
 
     This encapsulates a launchpadlib Task object, caches some queries,
     stores some other properties (eg. the team-"subscribed"-ness) as needed
     by callers, and presents a bunch of derived properties. All Task property
     specific handling is encapsulated here.
-    '''
+    """
     LONG_URL_ROOT = 'https://bugs.launchpad.net/bugs/'
     SHORTLINK_ROOT = 'LP: #'
     BUG_NUMBER_LENGTH = 7
 
     def __init__(self):
         self._cache = {}
-        self.subscribed = None  # whether the team is subscribed to the bug
-        self.last_activity_ours = None  # whether the last activity was by us
+        # Whether the team is subscribed to the bug
+        self.subscribed = None
+        # Whether the last activity was by us
+        self.last_activity_ours = None
+        self.obj = None
 
     @staticmethod
     def create_from_launchpadlib_object(obj, **kwargs):
+        """Create object from launchpadlib"""
         self = Task()
         self.obj = obj
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+        for key, value in kwargs.items():
+            setattr(self, key, value)
         return self
 
     @property
     def url(self):
-        '''The user-facing URL of the task'''
+        """The user-facing URL of the task"""
         return self.LONG_URL_ROOT + self.number
 
     @property
     def shortlink(self):
-        '''The user-facing "shortlink" that gnome-terminal will autolink'''
+        """The user-facing "shortlink" that gnome-terminal will autolink"""
         return self.SHORTLINK_ROOT + self.number
 
     @property
     def number(self):
-        '''The bug number as a string'''
+        """The bug number as a string"""
         try:
             return self._cache['number']
         except KeyError:
@@ -65,7 +66,7 @@ class Task:
 
     @property
     def src(self):
-        '''The source package name'''
+        """The source package name"""
         try:
             return self._cache['src']
         except KeyError:
@@ -74,7 +75,7 @@ class Task:
 
     @property
     def title(self):
-        '''The "title" as returned by launchpadlib'''
+        """The "title" as returned by launchpadlib"""
         try:
             return self._cache['title']
         except KeyError:
@@ -83,7 +84,7 @@ class Task:
 
     @property
     def status(self):
-        '''The "status" as returned by launchpadlib'''
+        """The "status" as returned by launchpadlib"""
         try:
             return self._cache['status']
         except KeyError:
@@ -92,7 +93,7 @@ class Task:
 
     @property
     def short_title(self):
-        '''Just the bug summary'''
+        """Just the bug summary"""
         try:
             return self._cache['short_title']
         except KeyError:
@@ -101,7 +102,7 @@ class Task:
             return self._cache['short_title']
 
     def compose_pretty(self, shortlinks=True):
-        '''Compose a printable line of relevant information'''
+        """Compose a printable line of relevant information"""
         if shortlinks:
             format_string = (
                 '%-' +
@@ -190,12 +191,14 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True):
 
 
 def last_activity_ours(task, activitysubscribers):
-    '''Work out whether the last person to work on this bug was one of us
+    """
+    Work out whether the last person to work on this bug was one of us
 
     task: a Launchpad task object
     activitysubscribers: a set of Launchpad person objects
 
-    Returns a boolean'''
+    Returns a boolean
+    """
 
     # If activitysubscribers is empty, then it wasn't one of us
     if not activitysubscribers:
@@ -303,7 +306,8 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber, nodatefilter,
     logging.info('Please be patient, this can take a few minutes...')
     start_date, end_date = check_dates(start_date, end_date, nodatefilter)
 
-    tasks = modified_bugs(start_date, end_date, lpname, bugsubscriber, activitysubscribers)
+    tasks = modified_bugs(start_date, end_date, lpname, bugsubscriber,
+                          activitysubscribers)
 
     logging.info('Found %s bugs', len(tasks))
     logging.info('---')
@@ -326,14 +330,15 @@ def report_current_backlog(lpname):
     logging.info('---')
 
 
-def main(start=None, end=None, open_in_browser=False, lpname="ubuntu-server",
-         bugsubscriber=False, nodatefilter=False, shortlinks=True,
-         activitysubscribernames=None):
+def main(start=None, end=None, debug=False, open_in_browser=False,
+         lpname="ubuntu-server", bugsubscriber=False, nodatefilter=False,
+         shortlinks=True, activitysubscribernames=None):
     """
     Connect to Launchpad, get range of bugs, print 'em.
     """
+    log_level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
-                        level=LOG_LEVEL)
+                        level=log_level)
 
     launchpad = connect_launchpad()
     logging.info('Ubuntu Server Bug List')
@@ -350,37 +355,38 @@ def main(start=None, end=None, open_in_browser=False, lpname="ubuntu-server",
     print_bugs(bugs, open_in_browser, shortlinks)
 
 
-if __name__ == '__main__':
-    PARSER = argparse.ArgumentParser()
-    PARSER.add_argument('start_date',
+def launch():
+    """Parse arguments provided"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('start_date',
                         nargs='?',
                         help='date to start finding bugs ' +
                         '(e.g. 2016-07-15)')
-    PARSER.add_argument('end_date',
+    parser.add_argument('end_date',
                         nargs='?',
                         help='date to end finding bugs (inclusive) ' +
                         '(e.g. 2016-07-31)')
-    PARSER.add_argument('-d', '--debug', action='store_true',
+    parser.add_argument('-d', '--debug', action='store_true',
                         help='debug output')
-    PARSER.add_argument('-o', '--open', action='store_true',
+    parser.add_argument('-o', '--open', action='store_true',
                         help='open in web browser')
-    PARSER.add_argument('-a', '--nodatefilter', action='store_true',
+    parser.add_argument('-a', '--nodatefilter', action='store_true',
                         help='show all (no date restriction)')
-    PARSER.add_argument('-n', '--lpname', default='ubuntu-server',
+    parser.add_argument('-n', '--lpname', default='ubuntu-server',
                         help='specify the launchpad name to search for')
-    PARSER.add_argument('-b', '--bugsubscriber', action='store_true',
+    parser.add_argument('-b', '--bugsubscriber', action='store_true',
                         help=('filter name as bug subscriber (default would '
                               'be structural subscriber'))
-    PARSER.add_argument('--fullurls', default=False, action='store_true',
+    parser.add_argument('--fullurls', default=False, action='store_true',
                         help='show full URLs instead of shortcuts')
-    PARSER.add_argument('--activitysubscribers',
+    parser.add_argument('--activitysubscribers',
                         help='highlight when last touched by this LP team')
 
-    ARGS = PARSER.parse_args()
+    args = parser.parse_args()
+    main(args.start_date, args.end_date, args.debug, args.open, args.lpname,
+         args.bugsubscriber, args.nodatefilter, not args.fullurls,
+         args.activitysubscribers)
 
-    if ARGS.debug:
-        LOG_LEVEL = logging.DEBUG
 
-    main(ARGS.start_date, ARGS.end_date, ARGS.open, ARGS.lpname,
-         ARGS.bugsubscriber, ARGS.nodatefilter, not ARGS.fullurls,
-         ARGS.activitysubscribers)
+if __name__ == '__main__':
+    launch()
