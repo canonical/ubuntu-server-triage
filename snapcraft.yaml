@@ -1,0 +1,23 @@
+name: ustriage
+version: master
+summary: Output Ubuntu Server Launchpad bugs for triage 
+description: |
+  Connect to Launchpad and collect Ubuntu Server bugs for triage.
+  List can be set to a specific or range of dates and allows for
+  filtering based on various options.
+
+grade: stable
+confinement: strict
+
+apps:
+    ustriage:
+        # LP: #1669306
+        command: usr/bin/python3 $SNAP/bin/ustriage
+        plugs: [network]
+
+parts:
+    ustriage:
+        plugin: python
+        source: https://github.com/powersj/ubuntu-server-triage
+        source-type: git
+

@@ -3,6 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Snapcraft
+build/
+prime/
+stage/
+*.snap
+
 # C extensions
 *.so
 

@@ -2,7 +2,7 @@
 from setuptools import setup
 
 setup(name='ustriage',
-      version='1.0',
+      version='1.1',
       description='Output Ubuntu Server Launchpad bugs for triage',
       author='Joshua Powers',
       author_email='josh.powers@canonical.com',
@@ -24,9 +24,10 @@ setup(name='ustriage',
           "Topic :: Software Development :: Quality Assurance",
           "Topic :: Software Development :: Testing",
       ],
+      packages=['ustriage'],
       entry_points={
-          'console_scripts': ['ustriage=ustriage.py:main']
+          'console_scripts': ['ustriage=ustriage.ustriage:launch']
       },
-      install_requires=[],
+      install_requires=['launchpadlib'],
       zip_safe=False
      )
