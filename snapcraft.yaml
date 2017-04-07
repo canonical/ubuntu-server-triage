@@ -20,5 +20,5 @@ parts:
         plugin: python
         source: https://github.com/powersj/ubuntu-server-triage
         source-type: git
-        stage-packages: [python3-launchpadlib]
+        stage-packages: [python3-launchpadlib, python3-keyrings.alt]
 
