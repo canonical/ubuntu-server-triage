@@ -34,6 +34,7 @@ class Task:
     def __init__(self):
         self._cache = {}
         self.subscribed = None  # whether the team is subscribed to the bug
+        self.last_activity_ours = None  # whether the last activity was by us
 
     @staticmethod
     def create_from_launchpadlib_object(obj, **kwargs):
@@ -116,9 +117,14 @@ class Task:
             )
             bug_url = format_string % self.url
 
+        flags = '%s%s' % (
+            '*' if self.subscribed else '',
+            '†' if self.last_activity_ours else '',
+        )
+
         return '%s - %-16s %-16s - %s' % (
             bug_url,
-            ('%s(%s)' % (('*' if self.subscribed else ''), self.status)),
+            ('%s(%s)' % (flags, self.status)),
             ('[%s]' % self.src), self.short_title
         )
 
@@ -183,7 +189,53 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True):
             webbrowser.open(task.url)
 
 
-def modified_bugs(start_date, end_date, lpname, bugsubscriber):
+def last_activity_ours(task, activitysubscribers):
+    '''Work out whether the last person to work on this bug was one of us
+
+    task: a Launchpad task object
+    activitysubscribers: a set of Launchpad person objects
+
+    Returns a boolean'''
+
+    # If activitysubscribers is empty, then it wasn't one of us
+    if not activitysubscribers:
+        return False
+
+    activitysubscribers_links = {p.self_link for p in activitysubscribers}
+
+    # activity_list contains a tuple of (date, person.self_link) pairs
+    activity_list = sorted(
+        (
+            [(a.datechanged, a.person.self_link) for a in task.bug.activity] +
+            [(m.date_created, m.owner.self_link) for m in task.bug.messages]
+        ),
+        key=lambda a: a[0],
+    )
+
+    most_recent_activity = activity_list.pop()
+
+    # Consider anything within an hour of the last activity or message as
+    # part of the same action
+    recent_activity_threshold = (
+        most_recent_activity[0] - timedelta(hours=1)
+    )
+    all_recent_activities = [most_recent_activity]
+
+    for next_most_recent_activity in reversed(activity_list):
+        if next_most_recent_activity[0] < recent_activity_threshold:
+            break
+        all_recent_activities.append(next_most_recent_activity)
+
+    # If all of the last action was us, then treat it as ours. If any of the
+    # last action wasn't done by us, then it isn't.
+    return all(
+        a[1] in activitysubscribers_links
+        for a in all_recent_activities
+    )
+
+
+def modified_bugs(start_date, end_date, lpname, bugsubscriber,
+                  activitysubscribers):
     """
     Returns a list of bugs modified between dates.
     """
@@ -232,6 +284,7 @@ def modified_bugs(start_date, end_date, lpname, bugsubscriber):
         Task.create_from_launchpadlib_object(
             task,
             subscribed=(link in already_sub_since_start),
+            last_activity_ours=last_activity_ours(task, activitysubscribers),
         )
         for link, task in bugs_in_range.items()
     }
@@ -239,7 +292,8 @@ def modified_bugs(start_date, end_date, lpname, bugsubscriber):
     return bugs
 
 
-def create_bug_list(start_date, end_date, lpname, bugsubscriber, nodatefilter):
+def create_bug_list(start_date, end_date, lpname, bugsubscriber, nodatefilter,
+                    activitysubscribers):
     """
     Subtracts all bugs modified after specified start and end dates.
 
@@ -249,7 +303,7 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber, nodatefilter):
     logging.info('Please be patient, this can take a few minutes...')
     start_date, end_date = check_dates(start_date, end_date, nodatefilter)
 
-    tasks = modified_bugs(start_date, end_date, lpname, bugsubscriber)
+    tasks = modified_bugs(start_date, end_date, lpname, bugsubscriber, activitysubscribers)
 
     logging.info('Found %s bugs', len(tasks))
     logging.info('---')
@@ -273,17 +327,26 @@ def report_current_backlog(lpname):
 
 
 def main(start=None, end=None, open_in_browser=False, lpname="ubuntu-server",
-         bugsubscriber=False, nodatefilter=False, shortlinks=True):
+         bugsubscriber=False, nodatefilter=False, shortlinks=True,
+         activitysubscribernames=None):
     """
     Connect to Launchpad, get range of bugs, print 'em.
     """
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
                         level=LOG_LEVEL)
 
-    connect_launchpad()
+    launchpad = connect_launchpad()
     logging.info('Ubuntu Server Bug List')
     report_current_backlog(lpname)
-    bugs = create_bug_list(start, end, lpname, bugsubscriber, nodatefilter)
+    if activitysubscribernames:
+        activitysubscribers = (
+            launchpad.people[activitysubscribernames].members
+        )
+    else:
+        activitysubscribers = []
+    bugs = create_bug_list(
+        start, end, lpname, bugsubscriber, nodatefilter, activitysubscribers
+    )
     print_bugs(bugs, open_in_browser, shortlinks)
 
 
@@ -310,6 +373,8 @@ if __name__ == '__main__':
                               'be structural subscriber'))
     PARSER.add_argument('--fullurls', default=False, action='store_true',
                         help='show full URLs instead of shortcuts')
+    PARSER.add_argument('--activitysubscribers',
+                        help='highlight when last touched by this LP team')
 
     ARGS = PARSER.parse_args()
 
@@ -317,4 +382,5 @@ if __name__ == '__main__':
         LOG_LEVEL = logging.DEBUG
 
     main(ARGS.start_date, ARGS.end_date, ARGS.open, ARGS.lpname,
-         ARGS.bugsubscriber, ARGS.nodatefilter, not ARGS.fullurls)
+         ARGS.bugsubscriber, ARGS.nodatefilter, not ARGS.fullurls,
+         ARGS.activitysubscribers)
