@@ -8,7 +8,6 @@ Joshua Powers <josh.powers@canonical.com>
 """
 import argparse
 from datetime import datetime, timedelta
-import getpass
 import logging
 import os
 import sys
@@ -20,6 +19,110 @@ from launchpadlib.launchpad import Launchpad
 LOG_LEVEL = logging.INFO
 
 
+class Task:
+    '''Our representation of a Launchpad task.
+
+    This encapsulates a launchpadlib Task object, caches some queries,
+    stores some other properties (eg. the team-"subscribed"-ness) as needed
+    by callers, and presents a bunch of derived properties. All Task property
+    specific handling is encapsulated here.
+    '''
+    LONG_URL_ROOT = 'https://bugs.launchpad.net/bugs/'
+    SHORTLINK_ROOT = 'LP: #'
+    BUG_NUMBER_LENGTH = 7
+
+    def __init__(self):
+        self._cache = {}
+        self.subscribed = None  # whether the team is subscribed to the bug
+
+    @staticmethod
+    def create_from_launchpadlib_object(obj, **kwargs):
+        self = Task()
+        self.obj = obj
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+        return self
+
+    @property
+    def url(self):
+        '''The user-facing URL of the task'''
+        return self.LONG_URL_ROOT + self.number
+
+    @property
+    def shortlink(self):
+        '''The user-facing "shortlink" that gnome-terminal will autolink'''
+        return self.SHORTLINK_ROOT + self.number
+
+    @property
+    def number(self):
+        '''The bug number as a string'''
+        try:
+            return self._cache['number']
+        except KeyError:
+            self._cache['number'] = self.title.split(' ')[1].replace('#', '')
+            return self._cache['number']
+
+    @property
+    def src(self):
+        '''The source package name'''
+        try:
+            return self._cache['src']
+        except KeyError:
+            self._cache['src'] = self.title.split(' ')[3]
+            return self._cache['src']
+
+    @property
+    def title(self):
+        '''The "title" as returned by launchpadlib'''
+        try:
+            return self._cache['title']
+        except KeyError:
+            self._cache['title'] = self.obj.title
+            return self._cache['title']
+
+    @property
+    def status(self):
+        '''The "status" as returned by launchpadlib'''
+        try:
+            return self._cache['status']
+        except KeyError:
+            self._cache['status'] = self.obj.status
+            return self._cache['status']
+
+    @property
+    def short_title(self):
+        '''Just the bug summary'''
+        try:
+            return self._cache['short_title']
+        except KeyError:
+            short_title = ' '.join(self.title.split(' ')[5:]).replace('"', '')
+            self._cache['short_title'] = short_title
+            return self._cache['short_title']
+
+    def compose_pretty(self, shortlinks=True):
+        '''Compose a printable line of relevant information'''
+        if shortlinks:
+            format_string = (
+                '%-' +
+                str(self.BUG_NUMBER_LENGTH + len(self.SHORTLINK_ROOT)) +
+                's'
+            )
+            bug_url = format_string % self.shortlink
+        else:
+            format_string = (
+                '%-' +
+                str(self.BUG_NUMBER_LENGTH + len(self.LONG_URL_ROOT)) +
+                's'
+            )
+            bug_url = format_string % self.url
+
+        return '%s - %-16s %-16s - %s' % (
+            bug_url,
+            ('%s(%s)' % (('*' if self.subscribed else ''), self.status)),
+            ('[%s]' % self.src), self.short_title
+        )
+
+
 def connect_launchpad():
     """
     Using the launchpad module connect to launchpad.
@@ -27,9 +130,7 @@ def connect_launchpad():
     Will connect you to the Launchpad website the first time you run
     this to autorize your system to connect.
     """
-    username = getpass.getuser()
-    cachedir = os.path.join('/home', username, '.launchpadlib/cache/')
-    return Launchpad.login_with(username, 'production', cachedir)
+    return Launchpad.login_with('ubuntu-server-triage.py', 'production')
 
 
 def check_dates(start, end=None, nodatefilter=False):
@@ -71,44 +172,15 @@ def check_dates(start, end=None, nodatefilter=False):
     return start, end
 
 
-def print_bugs(bugs, open_in_browser=False, shortlinks=True):
+def print_bugs(tasks, open_in_browser=False, shortlinks=True):
     """
-    Prints the bugs in a clean-ish format.
+    Prints the tasks in a clean-ish format.
     """
-    launchpad_url = 'https://bugs.launchpad.net/bugs/'
 
-    if shortlinks:
-        bug_url = 'LP: #'
-    else:
-        bug_url = launchpad_url
-
-    for bug in bugs:
-        logging.info('%s%-7s - %-16s %-16s - %s',
-                     bug_url, bug[0],
-                     ('%s(%s)' % (('*' if bug[4] else ''), bug[3])),
-                     ('[%s]' % bug[1]), bug[2])
+    for task in tasks:
+        logging.info(task.compose_pretty(shortlinks=shortlinks))
         if open_in_browser:
-            webbrowser.open("%s%s" % (launchpad_url, bug[0]))
-
-
-def bug_info(bugs):
-    """
-    Collects the specific information for each bug entry.
-
-    If detailed information is specified, than additional data is pulled
-    in by the script, like last_updated, web link, title. This however
-    takes a considerable amount of time.
-    """
-    bug_list = []
-    for (bug, status, subscribed) in bugs:
-        num = bug.split(' ')[1].replace('#', '')
-        src = bug.split(' ')[3]
-        title = ' '.join(bug.split(' ')[5:]).replace('"', '')
-        bug_list.append((num, src, title, status, subscribed))
-
-    bug_list.sort(key=lambda tup: tup[0])
-
-    return bug_list
+            webbrowser.open(task.url)
 
 
 def modified_bugs(start_date, end_date, lpname, bugsubscriber):
@@ -157,7 +229,10 @@ def modified_bugs(start_date, end_date, lpname, bugsubscriber):
     }
 
     bugs = {
-        (task.title, task.status, (link in already_sub_since_start))
+        Task.create_from_launchpadlib_object(
+            task,
+            subscribed=(link in already_sub_since_start),
+        )
         for link, task in bugs_in_range.items()
     }
 
@@ -174,14 +249,12 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber, nodatefilter):
     logging.info('Please be patient, this can take a few minutes...')
     start_date, end_date = check_dates(start_date, end_date, nodatefilter)
 
-    bugs = modified_bugs(start_date, end_date, lpname, bugsubscriber)
+    tasks = modified_bugs(start_date, end_date, lpname, bugsubscriber)
 
-    bug_list = bug_info(bugs)
-
-    logging.info('Found %s bugs', len(bug_list))
+    logging.info('Found %s bugs', len(tasks))
     logging.info('---')
 
-    return bug_list
+    return tasks
 
 
 def report_current_backlog(lpname):
