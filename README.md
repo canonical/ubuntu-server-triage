@@ -6,7 +6,8 @@ Output Ubuntu Server Launchpad bugs that for triage. The script is used by membe
 
 To obtain and run:
 ```
-wget https://raw.githubusercontent.com/powersj/ubuntu-server-triage/master/ustriage.py
+sudo apt install python3-launchpadlib
+wget https://raw.githubusercontent.com/powersj/ubuntu-server-triage/master/ustriage/ustriage.py
 chmod +x ustriage.py 
 # Running with no arguments will get previous day's bugs
 ./ustriage.py
