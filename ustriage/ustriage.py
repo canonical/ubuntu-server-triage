@@ -379,7 +379,13 @@ def launch():
     parser.add_argument('--fullurls', default=False, action='store_true',
                         help='show full URLs instead of shortcuts')
     parser.add_argument('--activitysubscribers',
+                        default='ubuntu-server-active-triagers',
                         help='highlight when last touched by this LP team')
+    parser.add_argument('--no-activitysubscribers',
+                        action='store_const',
+                        const=None,
+                        dest='activitysubscribers',
+                        help='unset the --activitysubscribers default')
 
     args = parser.parse_args()
     main(args.start_date, args.end_date, args.debug, args.open, args.lpname,
