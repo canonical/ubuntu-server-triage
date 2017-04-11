@@ -59,11 +59,15 @@ class Task(object):
     @lru_cache()
     def number(self):
         """The bug number as a string"""
+        # This could be str(self.obj.bug.id) but using self.title is
+        # significantly faster
         return self.title.split(' ')[1].replace('#', '')
 
     @property
     @lru_cache()
     def src(self):
+        # This could be self.target.name but using self.title is
+        # significantly faster
         """The source package name"""
         return self.title.split(' ')[3]
 
@@ -83,6 +87,8 @@ class Task(object):
     @lru_cache()
     def short_title(self):
         """Just the bug summary"""
+        # This could be self.obj.bug.title but using self.title is
+        # significantly faster
         return ' '.join(self.title.split(' ')[5:]).replace('"', '')
 
     def compose_pretty(self, shortlinks=True):
