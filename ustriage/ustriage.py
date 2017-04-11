@@ -220,7 +220,7 @@ def last_activity_ours(task, activitysubscribers):
     # Consider anything within an hour of the last activity or message as
     # part of the same action
     recent_activity_threshold = (
-        most_recent_activity[0] - timedelta(hours=1)
+        most_recent_activity[0] - timedelta(hours=1)  # [0] is date
     )
     all_recent_activities = [most_recent_activity]
 
