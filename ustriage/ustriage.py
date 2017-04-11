@@ -131,6 +131,7 @@ class Task(object):
         )
 
     def sort_key(self):
+        """Sort method"""
         return (not self.last_activity_ours, self.src)
 
 
@@ -405,8 +406,7 @@ def launch():
     main(args.start_date, args.end_date, args.debug, args.open, args.lpname,
          args.bugsubscriber, args.nodatefilter, not args.fullurls,
          args.activitysubscribers,
-         blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
-         )
+         blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST)
 
 
 if __name__ == '__main__':
