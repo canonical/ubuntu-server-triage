@@ -209,7 +209,6 @@ def last_activity_ours(task, activitysubscribers):
     # activity_list contains a tuple of (date, person.self_link) pairs
     activity_list = sorted(
         (
-            [(a.datechanged, a.person.self_link) for a in task.bug.activity] +
             [(m.date_created, m.owner.self_link) for m in task.bug.messages]
         ),
         key=lambda a: a[0],
