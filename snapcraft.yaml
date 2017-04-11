@@ -13,7 +13,7 @@ apps:
     ustriage:
         # LP: #1669306
         command: usr/bin/python3 $SNAP/bin/ustriage
-        plugs: [network]
+        plugs: [network, account-control]
 
 parts:
     ustriage:

@@ -8,11 +8,23 @@ Joshua Powers <josh.powers@canonical.com>
 """
 import argparse
 from datetime import datetime, timedelta
+from functools import lru_cache
 import logging
 import sys
 import webbrowser
 
 from launchpadlib.launchpad import Launchpad
+
+
+PACKAGE_BLACKLIST = {
+    'cloud-init',
+    'curtin',
+    'juju',
+    'juju-core',
+    'lxc',
+    'lxd',
+    'maas',
+}
 
 
 class Task(object):
@@ -29,7 +41,6 @@ class Task(object):
     BUG_NUMBER_LENGTH = 7
 
     def __init__(self):
-        self._cache = {}
         # Whether the team is subscribed to the bug
         self.subscribed = None
         # Whether the last activity was by us
@@ -56,50 +67,40 @@ class Task(object):
         return self.SHORTLINK_ROOT + self.number
 
     @property
+    @lru_cache()
     def number(self):
         """The bug number as a string"""
-        try:
-            return self._cache['number']
-        except KeyError:
-            self._cache['number'] = self.title.split(' ')[1].replace('#', '')
-            return self._cache['number']
+        # This could be str(self.obj.bug.id) but using self.title is
+        # significantly faster
+        return self.title.split(' ')[1].replace('#', '')
 
     @property
+    @lru_cache()
     def src(self):
+        # This could be self.target.name but using self.title is
+        # significantly faster
         """The source package name"""
-        try:
-            return self._cache['src']
-        except KeyError:
-            self._cache['src'] = self.title.split(' ')[3]
-            return self._cache['src']
+        return self.title.split(' ')[3]
 
     @property
+    @lru_cache()
     def title(self):
         """The "title" as returned by launchpadlib"""
-        try:
-            return self._cache['title']
-        except KeyError:
-            self._cache['title'] = self.obj.title
-            return self._cache['title']
+        return self.obj.title
 
     @property
+    @lru_cache()
     def status(self):
         """The "status" as returned by launchpadlib"""
-        try:
-            return self._cache['status']
-        except KeyError:
-            self._cache['status'] = self.obj.status
-            return self._cache['status']
+        return self.obj.status
 
     @property
+    @lru_cache()
     def short_title(self):
         """Just the bug summary"""
-        try:
-            return self._cache['short_title']
-        except KeyError:
-            short_title = ' '.join(self.title.split(' ')[5:]).replace('"', '')
-            self._cache['short_title'] = short_title
-            return self._cache['short_title']
+        # This could be self.obj.bug.title but using self.title is
+        # significantly faster
+        return ' '.join(self.title.split(' ')[5:]).replace('"', '')
 
     def compose_pretty(self, shortlinks=True):
         """Compose a printable line of relevant information"""
@@ -128,6 +129,10 @@ class Task(object):
             ('%s(%s)' % (flags, self.status)),
             ('[%s]' % self.src), self.short_title
         )
+
+    def sort_key(self):
+        """Sort method"""
+        return (not self.last_activity_ours, self.src)
 
 
 def connect_launchpad():
@@ -179,12 +184,21 @@ def check_dates(start, end=None, nodatefilter=False):
     return start, end
 
 
-def print_bugs(tasks, open_in_browser=False, shortlinks=True):
+def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None):
     """
     Prints the tasks in a clean-ish format.
     """
+    blacklist = blacklist or []
 
-    for task in tasks:
+    sorted_filtered_tasks = sorted(
+        (t for t in tasks if t.src not in blacklist),
+        key=Task.sort_key,
+    )
+
+    logging.info('Found %s bugs', len(sorted_filtered_tasks))
+    logging.info('---')
+
+    for task in sorted_filtered_tasks:
         logging.info(task.compose_pretty(shortlinks=shortlinks))
         if open_in_browser:
             webbrowser.open(task.url)
@@ -209,7 +223,6 @@ def last_activity_ours(task, activitysubscribers):
     # activity_list contains a tuple of (date, person.self_link) pairs
     activity_list = sorted(
         (
-            [(a.datechanged, a.person.self_link) for a in task.bug.activity] +
             [(m.date_created, m.owner.self_link) for m in task.bug.messages]
         ),
         key=lambda a: a[0],
@@ -220,7 +233,7 @@ def last_activity_ours(task, activitysubscribers):
     # Consider anything within an hour of the last activity or message as
     # part of the same action
     recent_activity_threshold = (
-        most_recent_activity[0] - timedelta(hours=1)
+        most_recent_activity[0] - timedelta(hours=1)  # [0] is date
     )
     all_recent_activities = [most_recent_activity]
 
@@ -309,9 +322,6 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber, nodatefilter,
     tasks = modified_bugs(start_date, end_date, lpname, bugsubscriber,
                           activitysubscribers)
 
-    logging.info('Found %s bugs', len(tasks))
-    logging.info('---')
-
     return tasks
 
 
@@ -332,10 +342,12 @@ def report_current_backlog(lpname):
 
 def main(start=None, end=None, debug=False, open_in_browser=False,
          lpname="ubuntu-server", bugsubscriber=False, nodatefilter=False,
-         shortlinks=True, activitysubscribernames=None):
+         shortlinks=True, activitysubscribernames=None, blacklist=None):
     """
     Connect to Launchpad, get range of bugs, print 'em.
     """
+    blacklist = blacklist or None
+
     log_level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
                         level=log_level)
@@ -352,7 +364,7 @@ def main(start=None, end=None, debug=False, open_in_browser=False,
     bugs = create_bug_list(
         start, end, lpname, bugsubscriber, nodatefilter, activitysubscribers
     )
-    print_bugs(bugs, open_in_browser, shortlinks)
+    print_bugs(bugs, open_in_browser, shortlinks, blacklist=blacklist)
 
 
 def launch():
@@ -380,12 +392,21 @@ def launch():
     parser.add_argument('--fullurls', default=False, action='store_true',
                         help='show full URLs instead of shortcuts')
     parser.add_argument('--activitysubscribers',
+                        default='ubuntu-server-active-triagers',
                         help='highlight when last touched by this LP team')
+    parser.add_argument('--no-activitysubscribers',
+                        action='store_const',
+                        const=None,
+                        dest='activitysubscribers',
+                        help='unset the --activitysubscribers default')
+    parser.add_argument('--no-blacklist', action='store_true',
+                        help='do not use the package blacklist')
 
     args = parser.parse_args()
     main(args.start_date, args.end_date, args.debug, args.open, args.lpname,
          args.bugsubscriber, args.nodatefilter, not args.fullurls,
-         args.activitysubscribers)
+         args.activitysubscribers,
+         blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST)
 
 
 if __name__ == '__main__':
