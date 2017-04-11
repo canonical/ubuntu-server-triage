@@ -129,6 +129,9 @@ class Task(object):
             ('[%s]' % self.src), self.short_title
         )
 
+    def sort_key(self):
+        return (not self.last_activity_ours, self.src)
+
 
 def connect_launchpad():
     """
@@ -184,7 +187,7 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True):
     Prints the tasks in a clean-ish format.
     """
 
-    for task in tasks:
+    for task in sorted(tasks, key=Task.sort_key):
         logging.info(task.compose_pretty(shortlinks=shortlinks))
         if open_in_browser:
             webbrowser.open(task.url)
