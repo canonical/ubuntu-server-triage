@@ -8,6 +8,7 @@ Joshua Powers <josh.powers@canonical.com>
 """
 import argparse
 from datetime import datetime, timedelta
+from functools import lru_cache
 import logging
 import sys
 import webbrowser
@@ -29,7 +30,6 @@ class Task(object):
     BUG_NUMBER_LENGTH = 7
 
     def __init__(self):
-        self._cache = {}
         # Whether the team is subscribed to the bug
         self.subscribed = None
         # Whether the last activity was by us
@@ -56,50 +56,34 @@ class Task(object):
         return self.SHORTLINK_ROOT + self.number
 
     @property
+    @lru_cache()
     def number(self):
         """The bug number as a string"""
-        try:
-            return self._cache['number']
-        except KeyError:
-            self._cache['number'] = self.title.split(' ')[1].replace('#', '')
-            return self._cache['number']
+        return self.title.split(' ')[1].replace('#', '')
 
     @property
+    @lru_cache()
     def src(self):
         """The source package name"""
-        try:
-            return self._cache['src']
-        except KeyError:
-            self._cache['src'] = self.title.split(' ')[3]
-            return self._cache['src']
+        return self.title.split(' ')[3]
 
     @property
+    @lru_cache()
     def title(self):
         """The "title" as returned by launchpadlib"""
-        try:
-            return self._cache['title']
-        except KeyError:
-            self._cache['title'] = self.obj.title
-            return self._cache['title']
+        return self.obj.title
 
     @property
+    @lru_cache()
     def status(self):
         """The "status" as returned by launchpadlib"""
-        try:
-            return self._cache['status']
-        except KeyError:
-            self._cache['status'] = self.obj.status
-            return self._cache['status']
+        return self.obj.status
 
     @property
+    @lru_cache()
     def short_title(self):
         """Just the bug summary"""
-        try:
-            return self._cache['short_title']
-        except KeyError:
-            short_title = ' '.join(self.title.split(' ')[5:]).replace('"', '')
-            self._cache['short_title'] = short_title
-            return self._cache['short_title']
+        return ' '.join(self.title.split(' ')[5:]).replace('"', '')
 
     def compose_pretty(self, shortlinks=True):
         """Compose a printable line of relevant information"""
