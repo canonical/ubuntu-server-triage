@@ -16,6 +16,17 @@ import webbrowser
 from launchpadlib.launchpad import Launchpad
 
 
+PACKAGE_BLACKLIST = {
+    'cloud-init',
+    'curtin',
+    'juju',
+    'juju-core',
+    'lxc',
+    'lxd',
+    'maas',
+}
+
+
 class Task(object):
     """
     Our representation of a Launchpad task.
@@ -172,12 +183,21 @@ def check_dates(start, end=None, nodatefilter=False):
     return start, end
 
 
-def print_bugs(tasks, open_in_browser=False, shortlinks=True):
+def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None):
     """
     Prints the tasks in a clean-ish format.
     """
+    blacklist = blacklist or []
 
-    for task in sorted(tasks, key=Task.sort_key):
+    sorted_filtered_tasks = sorted(
+        (t for t in tasks if t.src not in blacklist),
+        key=Task.sort_key,
+    )
+
+    logging.info('Found %s bugs', len(sorted_filtered_tasks))
+    logging.info('---')
+
+    for task in sorted_filtered_tasks:
         logging.info(task.compose_pretty(shortlinks=shortlinks))
         if open_in_browser:
             webbrowser.open(task.url)
@@ -301,9 +321,6 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber, nodatefilter,
     tasks = modified_bugs(start_date, end_date, lpname, bugsubscriber,
                           activitysubscribers)
 
-    logging.info('Found %s bugs', len(tasks))
-    logging.info('---')
-
     return tasks
 
 
@@ -324,10 +341,12 @@ def report_current_backlog(lpname):
 
 def main(start=None, end=None, debug=False, open_in_browser=False,
          lpname="ubuntu-server", bugsubscriber=False, nodatefilter=False,
-         shortlinks=True, activitysubscribernames=None):
+         shortlinks=True, activitysubscribernames=None, blacklist=None):
     """
     Connect to Launchpad, get range of bugs, print 'em.
     """
+    blacklist = blacklist or None
+
     log_level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
                         level=log_level)
@@ -344,7 +363,7 @@ def main(start=None, end=None, debug=False, open_in_browser=False,
     bugs = create_bug_list(
         start, end, lpname, bugsubscriber, nodatefilter, activitysubscribers
     )
-    print_bugs(bugs, open_in_browser, shortlinks)
+    print_bugs(bugs, open_in_browser, shortlinks, blacklist=blacklist)
 
 
 def launch():
@@ -379,11 +398,15 @@ def launch():
                         const=None,
                         dest='activitysubscribers',
                         help='unset the --activitysubscribers default')
+    parser.add_argument('--no-blacklist', action='store_true',
+                        help='do not use the package blacklist')
 
     args = parser.parse_args()
     main(args.start_date, args.end_date, args.debug, args.open, args.lpname,
          args.bugsubscriber, args.nodatefilter, not args.fullurls,
-         args.activitysubscribers)
+         args.activitysubscribers,
+         blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
+         )
 
 
 if __name__ == '__main__':
