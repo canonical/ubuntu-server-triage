@@ -7,7 +7,7 @@ description: |
   filtering based on various options.
 
 grade: stable
-confinement: strict
+confinement: classic
 
 apps:
     ustriage:
@@ -20,5 +20,8 @@ parts:
         plugin: python
         source: https://github.com/powersj/ubuntu-server-triage
         source-type: git
-        stage-packages: [python3-launchpadlib, python3-keyrings.alt]
+        stage-packages:
+            - python3-keyrings.alt
+            - python3-launchpadlib
+            - python3-pbr
 
