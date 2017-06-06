@@ -54,7 +54,7 @@ show all bugs user paelzer is subscribed to that were modified last month
 ```
 
 ## Bug expiration
-To have some kind of tracking of the bugs subscribed by ubuntu-server as well as those tagges server-next
+To have some kind of tracking of the bugs subscribed by ubuntu-server as well as those tagged server-next
 we have to make sure that we identify those that are dormant for too long.
 Therefore by default bug expiration info is now added to the output by default.
 
