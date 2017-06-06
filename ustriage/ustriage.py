@@ -267,11 +267,13 @@ def modified_bugs(start_date, end_date, lpname, bugsubscriber,
         # direct subscriber
         bugs_since_start = {
             task.self_link: task for task in project.searchTasks(
-                modified_since=start_date, bug_subscriber=team, tags=tag
+                modified_since=start_date, bug_subscriber=team, tags=tag,
+                tags_combinator='All'
             )}
         bugs_since_end = {
             task.self_link: task for task in project.searchTasks(
-                modified_since=end_date, bug_subscriber=team, tags=tag
+                modified_since=end_date, bug_subscriber=team, tags=tag,
+                tags_combinator='All'
             )}
 
         # N/A for direct subscribers
