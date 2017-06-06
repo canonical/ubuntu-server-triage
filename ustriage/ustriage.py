@@ -25,6 +25,8 @@ PACKAGE_BLACKLIST = {
     'lxd',
     'maas',
 }
+TEAMLPNAME = "ubuntu-server"
+OLDESTTRIAGE = "2012-01-01"
 
 
 class Task(object):
@@ -251,7 +253,7 @@ def last_activity_ours(task, activitysubscribers):
 
 
 def modified_bugs(start_date, end_date, lpname, bugsubscriber,
-                  activitysubscribers):
+                  activitysubscribers, tag):
     """
     Returns a list of bugs modified between dates.
     """
@@ -265,11 +267,11 @@ def modified_bugs(start_date, end_date, lpname, bugsubscriber,
         # direct subscriber
         bugs_since_start = {
             task.self_link: task for task in project.searchTasks(
-                modified_since=start_date, bug_subscriber=team
+                modified_since=start_date, bug_subscriber=team, tags=tag
             )}
         bugs_since_end = {
             task.self_link: task for task in project.searchTasks(
-                modified_since=end_date, bug_subscriber=team
+                modified_since=end_date, bug_subscriber=team, tags=tag
             )}
 
         # N/A for direct subscribers
@@ -309,7 +311,7 @@ def modified_bugs(start_date, end_date, lpname, bugsubscriber,
 
 
 def create_bug_list(start_date, end_date, lpname, bugsubscriber, nodatefilter,
-                    activitysubscribers):
+                    activitysubscribers, tag=None):
     """
     Subtracts all bugs modified after specified start and end dates.
 
@@ -320,7 +322,7 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber, nodatefilter,
     start_date, end_date = check_dates(start_date, end_date, nodatefilter)
 
     tasks = modified_bugs(start_date, end_date, lpname, bugsubscriber,
-                          activitysubscribers)
+                          activitysubscribers, tag)
 
     return tasks
 
@@ -341,8 +343,9 @@ def report_current_backlog(lpname):
 
 
 def main(start=None, end=None, debug=False, open_in_browser=False,
-         lpname="ubuntu-server", bugsubscriber=False, nodatefilter=False,
-         shortlinks=True, activitysubscribernames=None, blacklist=None):
+         lpname=TEAMLPNAME, bugsubscriber=False, nodatefilter=False,
+         shortlinks=True, activitysubscribernames=None, blacklist=None,
+         expire_next=None, expire_overall=None, tag_next=None):
     """
     Connect to Launchpad, get range of bugs, print 'em.
     """
@@ -366,6 +369,24 @@ def main(start=None, end=None, debug=False, open_in_browser=False,
     )
     print_bugs(bugs, open_in_browser, shortlinks, blacklist=blacklist)
 
+    logging.info('Expiration check')
+    expire = (datetime.now() - timedelta(days=expire_next))
+    expire = expire.strftime('%Y-%m-%d')
+    bugs = create_bug_list(OLDESTTRIAGE,
+                           expire,
+                           lpname, TEAMLPNAME, None, None,
+                           tag="server-next")
+    logging.info('Bugs tagged %s older then %s', tag_next, expire_next)
+    print_bugs(bugs, open_in_browser, shortlinks, blacklist=blacklist)
+
+    expire = (datetime.now() - timedelta(days=expire_overall))
+    expire = expire.strftime('%Y-%m-%d')
+    bugs = create_bug_list(OLDESTTRIAGE,
+                           expire,
+                           lpname, TEAMLPNAME, None, None)
+    logging.info('Bugs older than then %s', expire_overall)
+    print_bugs(bugs, open_in_browser, shortlinks, blacklist=blacklist)
+
 
 def launch():
     """Parse arguments provided"""
@@ -384,7 +405,7 @@ def launch():
                         help='open in web browser')
     parser.add_argument('-a', '--nodatefilter', action='store_true',
                         help='show all (no date restriction)')
-    parser.add_argument('-n', '--lpname', default='ubuntu-server',
+    parser.add_argument('-n', '--lpname', default=TEAMLPNAME,
                         help='specify the launchpad name to search for')
     parser.add_argument('-b', '--bugsubscriber', action='store_true',
                         help=('filter name as bug subscriber (default would '
@@ -401,12 +422,27 @@ def launch():
                         help='unset the --activitysubscribers default')
     parser.add_argument('--no-blacklist', action='store_true',
                         help='do not use the package blacklist')
+    parser.add_argument('--expire-next',
+                        default=60,
+                        dest='expire_next',
+                        help='Days to consider bugs that should be handled'
+                        ' next expired')
+    parser.add_argument('--expire',
+                        default=180,
+                        dest='expire',
+                        help='Days to consider bugs expired')
+    parser.add_argument('--tag-next',
+                        default='server-next',
+                        dest='tag_next',
+                        help='Tag that marks bugs to be handled soon')
 
     args = parser.parse_args()
     main(args.start_date, args.end_date, args.debug, args.open, args.lpname,
          args.bugsubscriber, args.nodatefilter, not args.fullurls,
          args.activitysubscribers,
-         blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST)
+         blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
+         expire_next=args.expire_next, expire_overall=args.expire,
+         tag_next=args.tag_next)
 
 
 if __name__ == '__main__':
