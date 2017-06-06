@@ -38,7 +38,7 @@ class Task(object):
     by callers, and presents a bunch of derived properties. All Task property
     specific handling is encapsulated here.
     """
-    LONG_URL_ROOT = 'https://bugs.launchpad.net/bugs/'
+    LONG_URL_ROOT = 'pad.lv/'
     SHORTLINK_ROOT = 'LP: #'
     BUG_NUMBER_LENGTH = 7
 
