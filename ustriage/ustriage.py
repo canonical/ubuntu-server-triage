@@ -372,23 +372,26 @@ def main(start=None, end=None, debug=False, open_in_browser=False,
     )
     print_bugs(bugs, open_in_browser, shortlinks, blacklist=blacklist)
 
-    logging.info('Expiration check')
+    logging.info('---')
+    logging.info('Expiration check I')
     expire = (datetime.now() - timedelta(days=expire_next))
     expire = expire.strftime('%Y-%m-%d')
     bugs = create_bug_list(OLDESTTRIAGE,
                            expire,
                            lpname, TEAMLPNAME, None, None,
                            tag=["server-next", "-bot-stop-nagging"])
-    logging.info('Bugs tagged %s older then %s', tag_next, expire_next)
+    logging.info('Bugs tagged %s older than %s', tag_next, expire_next)
     print_bugs(bugs, open_expire_in_browser, shortlinks, blacklist=blacklist)
 
+    logging.info('---')
+    logging.info('Expiration check II')
     expire = (datetime.now() - timedelta(days=expire_overall))
     expire = expire.strftime('%Y-%m-%d')
     bugs = create_bug_list(OLDESTTRIAGE,
                            expire,
                            lpname, TEAMLPNAME, None, None,
                            tag="-bot-stop-nagging")
-    logging.info('Bugs older than then %s', expire_overall)
+    logging.info('Bugs older than than %s', expire_overall)
     print_bugs(bugs, open_expire_in_browser, shortlinks, blacklist=blacklist)
 
 
