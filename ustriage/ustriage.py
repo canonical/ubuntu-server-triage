@@ -344,12 +344,10 @@ def report_current_backlog(lpname):
     logging.info('---')
 
 
-def main(start=None, end=None, debug=False, open_in_browser=False,
-         open_expire_in_browser=False,
+def main(date_range=None, debug=False, open_browser=None,
          lpname=TEAMLPNAME, bugsubscriber=False, nodatefilter=False,
-         shortlinks=True, activitysubscribernames=None, blacklist=None,
-         expire_next=None, expire_overall=None, tag_next=None,
-         expiration=False):
+         shortlinks=True, activitysubscribernames=None, expiration=None,
+         blacklist=None):
     """
     Connect to Launchpad, get range of bugs, print 'em.
     """
@@ -369,33 +367,35 @@ def main(start=None, end=None, debug=False, open_in_browser=False,
     else:
         activitysubscribers = []
     bugs = create_bug_list(
-        start, end, lpname, bugsubscriber, nodatefilter, activitysubscribers
+        date_range['start'], date_range['end'],
+        lpname, bugsubscriber, nodatefilter, activitysubscribers
     )
-    print_bugs(bugs, open_in_browser, shortlinks, blacklist=blacklist)
+    print_bugs(bugs, open_browser['triage'], shortlinks, blacklist=blacklist)
 
-    if expiration:
+    if expiration['show_expiration']:
         logging.info('---')
         logging.info('Expiration check I')
-        expire = (datetime.now() - timedelta(days=expire_next))
+        expire = (datetime.now() - timedelta(days=expiration['expire_next']))
         expire = expire.strftime('%Y-%m-%d')
         bugs = create_bug_list(OLDESTTRIAGE,
                                expire,
                                lpname, TEAMLPNAME, None, None,
                                tag=["server-next", "-bot-stop-nagging"])
-        logging.info('Bugs tagged %s older than %s', tag_next, expire_next)
-        print_bugs(bugs, open_expire_in_browser, shortlinks,
+        logging.info('Bugs tagged %s older than %s',
+                     expiration['tag_next'], expiration['expire_next'])
+        print_bugs(bugs, open_browser['exp'], shortlinks,
                    blacklist=blacklist)
 
         logging.info('---')
         logging.info('Expiration check II')
-        expire = (datetime.now() - timedelta(days=expire_overall))
+        expire = (datetime.now() - timedelta(days=expiration['expire']))
         expire = expire.strftime('%Y-%m-%d')
         bugs = create_bug_list(OLDESTTRIAGE,
                                expire,
                                lpname, TEAMLPNAME, None, None,
                                tag="-bot-stop-nagging")
-        logging.info('Bugs older than than %s', expire_overall)
-        print_bugs(bugs, open_expire_in_browser, shortlinks,
+        logging.info('Bugs older than than %s', expiration['expire'])
+        print_bugs(bugs, open_browser['exp'], shortlinks,
                    blacklist=blacklist)
 
 
@@ -439,7 +439,7 @@ def launch():
     parser.add_argument('-e', '--no-expiration',
                         default=True,
                         action='store_false',
-                        dest='expiration',
+                        dest='show_expiration',
                         help='Report about expiration of triaged bugs')
     parser.add_argument('--expire-next',
                         default=60,
@@ -456,12 +456,20 @@ def launch():
                         help='Tag that marks bugs to be handled soon')
 
     args = parser.parse_args()
-    main(args.start_date, args.end_date, args.debug, args.open, args.openexp,
+
+    open_browser = {'triage': args.open,
+                    'exp': args.openexp}
+    expiration = {'expire_next': args.expire_next,
+                  'expire': args.expire,
+                  'tag_next': args.tag_next,
+                  'show_expiration': args.show_expiration}
+    date_range = {'start': args.start_date,
+                  'end': args.end_date}
+
+    main(date_range, args.debug, open_browser,
          args.lpname, args.bugsubscriber, args.nodatefilter, not args.fullurls,
-         args.activitysubscribers,
-         blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
-         expire_next=args.expire_next, expire_overall=args.expire,
-         tag_next=args.tag_next, expiration=args.expiration)
+         args.activitysubscribers, expiration,
+         blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST)
 
 
 if __name__ == '__main__':
