@@ -343,6 +343,7 @@ def report_current_backlog(lpname):
 
 
 def main(start=None, end=None, debug=False, open_in_browser=False,
+         open_expire_in_browser=False,
          lpname=TEAMLPNAME, bugsubscriber=False, nodatefilter=False,
          shortlinks=True, activitysubscribernames=None, blacklist=None,
          expire_next=None, expire_overall=None, tag_next=None):
@@ -377,7 +378,7 @@ def main(start=None, end=None, debug=False, open_in_browser=False,
                            lpname, TEAMLPNAME, None, None,
                            tag=["server-next", "-bot-stop-nagging"])
     logging.info('Bugs tagged %s older then %s', tag_next, expire_next)
-    print_bugs(bugs, open_in_browser, shortlinks, blacklist=blacklist)
+    print_bugs(bugs, open_expire_in_browser, shortlinks, blacklist=blacklist)
 
     expire = (datetime.now() - timedelta(days=expire_overall))
     expire = expire.strftime('%Y-%m-%d')
@@ -386,7 +387,7 @@ def main(start=None, end=None, debug=False, open_in_browser=False,
                            lpname, TEAMLPNAME, None, None,
                            tag="-bot-stop-nagging")
     logging.info('Bugs older than then %s', expire_overall)
-    print_bugs(bugs, open_in_browser, shortlinks, blacklist=blacklist)
+    print_bugs(bugs, open_expire_in_browser, shortlinks, blacklist=blacklist)
 
 
 def launch():
@@ -404,6 +405,9 @@ def launch():
                         help='debug output')
     parser.add_argument('-o', '--open', action='store_true',
                         help='open in web browser')
+    parser.add_argument('-O', '--open-expire', action='store_true',
+                        dest='openexp',
+                        help='open expiring bugs in web browser')
     parser.add_argument('-a', '--nodatefilter', action='store_true',
                         help='show all (no date restriction)')
     parser.add_argument('-n', '--lpname', default=TEAMLPNAME,
@@ -438,8 +442,8 @@ def launch():
                         help='Tag that marks bugs to be handled soon')
 
     args = parser.parse_args()
-    main(args.start_date, args.end_date, args.debug, args.open, args.lpname,
-         args.bugsubscriber, args.nodatefilter, not args.fullurls,
+    main(args.start_date, args.end_date, args.debug, args.open, args.openexp,
+         args.lpname, args.bugsubscriber, args.nodatefilter, not args.fullurls,
          args.activitysubscribers,
          blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
          expire_next=args.expire_next, expire_overall=args.expire,
