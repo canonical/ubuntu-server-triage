@@ -52,3 +52,26 @@ show all bugs user paelzer is subscribed to (without date modification filter)
 show all bugs user paelzer is subscribed to that were modified last month
 ./ustriage.py --lpname paelzer --bugsubscriber 2016-08-20 2016-09-20
 ```
+
+## Bug expiration
+To have some kind of tracking of the bugs subscribed by ubuntu-server as well as those tagged server-next
+we have to make sure that we identify those that are dormant for too long.
+Therefore by default bug expiration info is now added to the output by default.
+
+Since these lists can be rather huge they are not opened in a browser by default.
+But if wanted a user can set the option --open-expire
+```
+./ustriage.py 2016-09-10 2016-09-12 --open-expire
+```
+If instead a user is not interested at all in the expiration he can disable the report by --no-expiration
+```
+./ustriage.py 2016-09-10 2016-09-12 --no-expiration
+```
+### Further options and use cases of bug expiration
+The expiration is defined as 60 days of inactivity in server-next tagged bugs, and 180 days for the other ubuntu-server subscribed bugs.
+These durations as well as the tag it considers for the "active" list can be tuned via the arguments, --expire-next, --expire and --tag-next.
+This can be combined with a custom bug subscriber to be useful outside of the server team triage.
+So the following example for example will list any bugs subscribed by hardcoredev which are inactive for 5 or more days with the tag super-urgent.
+```
+./ustriage.py 2016-09-10 2016-09-12 --expire-next 5 --tag-next super-urgent --bugsubscriber hardcoredev
+```
