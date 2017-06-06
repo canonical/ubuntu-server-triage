@@ -375,7 +375,7 @@ def main(start=None, end=None, debug=False, open_in_browser=False,
     bugs = create_bug_list(OLDESTTRIAGE,
                            expire,
                            lpname, TEAMLPNAME, None, None,
-                           tag="server-next")
+                           tag=["server-next", "-bot-stop-nagging"])
     logging.info('Bugs tagged %s older then %s', tag_next, expire_next)
     print_bugs(bugs, open_in_browser, shortlinks, blacklist=blacklist)
 
@@ -383,7 +383,8 @@ def main(start=None, end=None, debug=False, open_in_browser=False,
     expire = expire.strftime('%Y-%m-%d')
     bugs = create_bug_list(OLDESTTRIAGE,
                            expire,
-                           lpname, TEAMLPNAME, None, None)
+                           lpname, TEAMLPNAME, None, None,
+                           tag="-bot-stop-nagging")
     logging.info('Bugs older than then %s', expire_overall)
     print_bugs(bugs, open_in_browser, shortlinks, blacklist=blacklist)
 
