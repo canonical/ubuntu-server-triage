@@ -454,7 +454,7 @@ def launch():
                         default=True,
                         action='store_false',
                         dest='show_expiration',
-                        help='Report about expiration of triaged bugs')
+                        help='Do not report about expiration of bugs')
     parser.add_argument('--expire-next',
                         default=60,
                         dest='expire_next',
