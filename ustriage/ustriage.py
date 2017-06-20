@@ -365,6 +365,12 @@ def main(date_range=None, debug=False, open_browser=None,
         )
     else:
         activitysubscribers = []
+
+    logging.info('---')
+    logging.info('%s (%s) subscribed Bugs last touched in the specified '
+                 'triage period %s - %s ',
+                 lpname, "direct" if bugsubscriber else "structural",
+                 date_range['start'], date_range['end'])
     bugs = create_bug_list(
         date_range['start'], date_range['end'],
         lpname, bugsubscriber, nodatefilter, activitysubscribers
