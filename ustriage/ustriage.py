@@ -353,9 +353,8 @@ def main(date_range=None, debug=False, open_browser=None,
     """
     blacklist = blacklist or None
 
-    log_level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
-                        level=log_level)
+                        level=logging.DEBUG if debug else logging.INFO)
 
     launchpad = connect_launchpad()
     logging.info('Ubuntu Server Bug List')
