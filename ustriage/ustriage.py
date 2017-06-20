@@ -26,7 +26,6 @@ PACKAGE_BLACKLIST = {
     'maas',
 }
 TEAMLPNAME = "ubuntu-server"
-OLDESTTRIAGE = "2012-01-01"
 
 
 class Task(object):
@@ -382,10 +381,14 @@ def main(date_range=None, debug=False, open_browser=None,
         logging.info('%s subscribed Bugs tagged %s older than %s days',
                      lpname,
                      expiration['tag_next'], expiration['expire_next'])
-        expire = (datetime.now() - timedelta(days=expiration['expire_next']))
-        expire = expire.strftime('%Y-%m-%d')
-        bugs = create_bug_list(OLDESTTRIAGE,
-                               expire,
+        expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
+                        - timedelta(days=expiration['expire_next']))
+        expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
+                      - timedelta(days=expiration['expire_next']))
+        expire_start = expire_start.strftime('%Y-%m-%d')
+        expire_end = expire_end.strftime('%Y-%m-%d')
+        bugs = create_bug_list(expire_start,
+                               expire_end,
                                lpname, TEAMLPNAME, None, None,
                                tag=["server-next", "-bot-stop-nagging"])
         print_bugs(bugs, open_browser['exp'], shortlinks,
@@ -394,10 +397,14 @@ def main(date_range=None, debug=False, open_browser=None,
         logging.info('---')
         logging.info('%s subscribed Bugs older than than %s days',
                      lpname, expiration['expire'])
-        expire = (datetime.now() - timedelta(days=expiration['expire']))
-        expire = expire.strftime('%Y-%m-%d')
-        bugs = create_bug_list(OLDESTTRIAGE,
-                               expire,
+        expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
+                        - timedelta(days=expiration['expire']))
+        expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
+                      - timedelta(days=expiration['expire']))
+        expire_start = expire_start.strftime('%Y-%m-%d')
+        expire_end = expire_end.strftime('%Y-%m-%d')
+        bugs = create_bug_list(expire_start,
+                               expire_end,
                                lpname, TEAMLPNAME, None, None,
                                tag="-bot-stop-nagging")
         print_bugs(bugs, open_browser['exp'], shortlinks,
