@@ -378,7 +378,8 @@ def main(date_range=None, debug=False, open_browser=None,
 
     if expiration['show_expiration']:
         logging.info('---')
-        logging.info('%s subscribed Bugs tagged %s older than %s days',
+        logging.info('%s subscribed Bugs tagged %s not touched in %s days '
+                     'relative to the specified triage period',
                      lpname,
                      expiration['tag_next'], expiration['expire_next'])
         expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
@@ -395,7 +396,8 @@ def main(date_range=None, debug=False, open_browser=None,
                    blacklist=blacklist)
 
         logging.info('---')
-        logging.info('%s subscribed Bugs older than than %s days',
+        logging.info('%s subscribed Bugs not touched in %s days '
+                     'relative to the specified triage period',
                      lpname, expiration['expire'])
         expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
                         - timedelta(days=expiration['expire']))
