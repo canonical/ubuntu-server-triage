@@ -26,7 +26,6 @@ PACKAGE_BLACKLIST = {
     'maas',
 }
 TEAMLPNAME = "ubuntu-server"
-OLDESTTRIAGE = "2012-01-01"
 
 
 class Task(object):
@@ -353,9 +352,8 @@ def main(date_range=None, debug=False, open_browser=None,
     """
     blacklist = blacklist or None
 
-    log_level = logging.DEBUG if debug else logging.INFO
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
-                        level=log_level)
+                        level=logging.DEBUG if debug else logging.INFO)
 
     launchpad = connect_launchpad()
     logging.info('Ubuntu Server Bug List')
@@ -366,6 +364,12 @@ def main(date_range=None, debug=False, open_browser=None,
         )
     else:
         activitysubscribers = []
+
+    logging.info('---')
+    logging.info('%s (%s) subscribed Bugs last touched in the specified '
+                 'triage period %s - %s ',
+                 lpname, "direct" if bugsubscriber else "structural",
+                 date_range['start'], date_range['end'])
     bugs = create_bug_list(
         date_range['start'], date_range['end'],
         lpname, bugsubscriber, nodatefilter, activitysubscribers
@@ -374,25 +378,35 @@ def main(date_range=None, debug=False, open_browser=None,
 
     if expiration['show_expiration']:
         logging.info('---')
-        logging.info('%s subscribed Bugs tagged %s older than %s days',
+        logging.info('%s subscribed Bugs tagged %s not touched in %s days '
+                     'relative to the specified triage period',
                      lpname,
                      expiration['tag_next'], expiration['expire_next'])
-        expire = (datetime.now() - timedelta(days=expiration['expire_next']))
-        expire = expire.strftime('%Y-%m-%d')
-        bugs = create_bug_list(OLDESTTRIAGE,
-                               expire,
+        expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
+                        - timedelta(days=expiration['expire_next']))
+        expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
+                      - timedelta(days=expiration['expire_next']))
+        expire_start = expire_start.strftime('%Y-%m-%d')
+        expire_end = expire_end.strftime('%Y-%m-%d')
+        bugs = create_bug_list(expire_start,
+                               expire_end,
                                lpname, TEAMLPNAME, None, None,
                                tag=["server-next", "-bot-stop-nagging"])
         print_bugs(bugs, open_browser['exp'], shortlinks,
                    blacklist=blacklist)
 
         logging.info('---')
-        logging.info('%s subscribed Bugs older than than %s days',
+        logging.info('%s subscribed Bugs not touched in %s days '
+                     'relative to the specified triage period',
                      lpname, expiration['expire'])
-        expire = (datetime.now() - timedelta(days=expiration['expire']))
-        expire = expire.strftime('%Y-%m-%d')
-        bugs = create_bug_list(OLDESTTRIAGE,
-                               expire,
+        expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
+                        - timedelta(days=expiration['expire']))
+        expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
+                      - timedelta(days=expiration['expire']))
+        expire_start = expire_start.strftime('%Y-%m-%d')
+        expire_end = expire_end.strftime('%Y-%m-%d')
+        bugs = create_bug_list(expire_start,
+                               expire_end,
                                lpname, TEAMLPNAME, None, None,
                                tag="-bot-stop-nagging")
         print_bugs(bugs, open_browser['exp'], shortlinks,
@@ -440,7 +454,7 @@ def launch():
                         default=True,
                         action='store_false',
                         dest='show_expiration',
-                        help='Report about expiration of triaged bugs')
+                        help='Do not report about expiration of bugs')
     parser.add_argument('--expire-next',
                         default=60,
                         dest='expire_next',
