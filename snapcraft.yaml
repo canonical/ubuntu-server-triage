@@ -1,6 +1,6 @@
 name: ustriage
 version: master
-summary: Output Ubuntu Server Launchpad bugs for triage 
+summary: Output Ubuntu Server Launchpad bugs for triage
 description: |
   Connect to Launchpad and collect Ubuntu Server bugs for triage.
   List can be set to a specific or range of dates and allows for
@@ -13,7 +13,6 @@ apps:
     ustriage:
         # LP: #1669306
         command: usr/bin/python3 $SNAP/bin/ustriage
-        plugs: [network, account-control]
 
 parts:
     ustriage:
