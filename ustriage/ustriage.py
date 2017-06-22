@@ -174,13 +174,9 @@ def check_dates(start, end=None, nodatefilter=False):
     if not end:
         end = start
 
-    logging.info('%s to %s (inclusive)', start, end)
-
     # Always add one to end date to make the dates inclusive
     end = datetime.strptime(end, '%Y-%m-%d') + timedelta(days=1)
     end = end.strftime('%Y-%m-%d')
-
-    logging.debug('Searching for %s and %s', start, end)
 
     return start, end
 
@@ -197,7 +193,6 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None):
     )
 
     logging.info('Found %s bugs', len(sorted_filtered_tasks))
-    logging.info('---')
 
     for task in sorted_filtered_tasks:
         logging.info(task.compose_pretty(shortlinks=shortlinks))
@@ -319,7 +314,6 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber,
     This provides the list of bugs between two dates as Launchpad does
     not appear to have a specific function for searching for a range.
     """
-    logging.info('Please be patient, this can take a few minutes...')
     tasks = modified_bugs(start_date, end_date, lpname, bugsubscriber,
                           activitysubscribers, tag)
 
@@ -336,9 +330,50 @@ def report_current_backlog(lpname):
     project = launchpad.distributions['Ubuntu']
     team = launchpad.people[lpname]
     sub_bugs = project.searchTasks(bug_subscriber=team)
-    logging.info('Team %s currently subscribed to %d bugs',
+    logging.info('Team \'%s\' currently subscribed to %d bugs',
                  lpname, len(sub_bugs))
+
+
+def print_expired_tagged_bugs(lpname, expiration, date_range, open_browser,
+                              shortlinks, blacklist):
+    """Prints bugs with server-next that have not been touched in a while."""
+    logging.info('')
     logging.info('---')
+    logging.info('Bugs tagged \'%s\' and not touched in %s days',
+                 expiration['tag_next'], expiration['expire_next'])
+    expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
+                    - timedelta(days=expiration['expire_next']))
+    expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
+                  - timedelta(days=expiration['expire_next']))
+    expire_start = expire_start.strftime('%Y-%m-%d')
+    expire_end = expire_end.strftime('%Y-%m-%d')
+    bugs = create_bug_list(expire_start,
+                           expire_end,
+                           lpname, TEAMLPNAME, None,
+                           tag=["server-next", "-bot-stop-nagging"])
+    print_bugs(bugs, open_browser['exp'], shortlinks,
+               blacklist=blacklist)
+
+
+def print_expired_backlog_bugs(lpname, expiration, date_range, open_browser,
+                               shortlinks, blacklist):
+    """Prints bugs in the backlog that have not been touched in a while."""
+    logging.info('')
+    logging.info('---')
+    logging.info('Bugs in backlog and not touched in %s days',
+                 expiration['expire'])
+    expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
+                    - timedelta(days=expiration['expire']))
+    expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
+                  - timedelta(days=expiration['expire']))
+    expire_start = expire_start.strftime('%Y-%m-%d')
+    expire_end = expire_end.strftime('%Y-%m-%d')
+    bugs = create_bug_list(expire_start,
+                           expire_end,
+                           lpname, TEAMLPNAME, None,
+                           tag="-bot-stop-nagging")
+    print_bugs(bugs, open_browser['exp'], shortlinks,
+               blacklist=blacklist)
 
 
 def main(date_range=None, debug=False, open_browser=None,
@@ -348,13 +383,12 @@ def main(date_range=None, debug=False, open_browser=None,
     """
     Connect to Launchpad, get range of bugs, print 'em.
     """
-    blacklist = blacklist or None
-
+    launchpad = connect_launchpad()
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
                         level=logging.DEBUG if debug else logging.INFO)
 
-    launchpad = connect_launchpad()
     logging.info('Ubuntu Server Bug List')
+    logging.info('Please be patient, this can take a few minutes...')
     report_current_backlog(lpname)
     if activitysubscribernames:
         activitysubscribers = (
@@ -368,10 +402,12 @@ def main(date_range=None, debug=False, open_browser=None,
                                                          nodatefilter)
 
     logging.info('---')
-    logging.info('%s (%s) subscribed Bugs last touched in the specified '
-                 'triage period %s - %s ',
-                 lpname, "direct" if bugsubscriber else "structural",
-                 date_range['start'], date_range['end'])
+    # Need to make date range inclusive
+    end = datetime.strptime(date_range['end'], '%Y-%m-%d') - timedelta(days=1)
+    end = end.strftime('%Y-%m-%d')
+    logging.info('Bugs for triage on %s to %s (inclusive)',
+                 date_range['start'], end)
+
     bugs = create_bug_list(
         date_range['start'], date_range['end'],
         lpname, bugsubscriber, activitysubscribers
@@ -379,40 +415,10 @@ def main(date_range=None, debug=False, open_browser=None,
     print_bugs(bugs, open_browser['triage'], shortlinks, blacklist=blacklist)
 
     if expiration['show_expiration']:
-        logging.info('---')
-        logging.info('%s subscribed Bugs tagged %s not touched in %s days '
-                     'relative to the specified triage period',
-                     lpname,
-                     expiration['tag_next'], expiration['expire_next'])
-        expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
-                        - timedelta(days=expiration['expire_next']))
-        expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
-                      - timedelta(days=expiration['expire_next']))
-        expire_start = expire_start.strftime('%Y-%m-%d')
-        expire_end = expire_end.strftime('%Y-%m-%d')
-        bugs = create_bug_list(expire_start,
-                               expire_end,
-                               lpname, TEAMLPNAME, None,
-                               tag=["server-next", "-bot-stop-nagging"])
-        print_bugs(bugs, open_browser['exp'], shortlinks,
-                   blacklist=blacklist)
-
-        logging.info('---')
-        logging.info('%s subscribed Bugs not touched in %s days '
-                     'relative to the specified triage period',
-                     lpname, expiration['expire'])
-        expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
-                        - timedelta(days=expiration['expire']))
-        expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
-                      - timedelta(days=expiration['expire']))
-        expire_start = expire_start.strftime('%Y-%m-%d')
-        expire_end = expire_end.strftime('%Y-%m-%d')
-        bugs = create_bug_list(expire_start,
-                               expire_end,
-                               lpname, TEAMLPNAME, None,
-                               tag="-bot-stop-nagging")
-        print_bugs(bugs, open_browser['exp'], shortlinks,
-                   blacklist=blacklist)
+        print_expired_tagged_bugs(lpname, expiration, date_range, open_browser,
+                                  shortlinks, blacklist)
+        print_expired_backlog_bugs(lpname, expiration, date_range,
+                                   open_browser, shortlinks, blacklist)
 
 
 def launch():
