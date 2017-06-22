@@ -311,7 +311,7 @@ def modified_bugs(start_date, end_date, lpname, bugsubscriber,
     return bugs
 
 
-def create_bug_list(start_date, end_date, lpname, bugsubscriber, nodatefilter,
+def create_bug_list(start_date, end_date, lpname, bugsubscriber,
                     activitysubscribers, tag=None):
     """
     Subtracts all bugs modified after specified start and end dates.
@@ -374,7 +374,7 @@ def main(date_range=None, debug=False, open_browser=None,
                  date_range['start'], date_range['end'])
     bugs = create_bug_list(
         date_range['start'], date_range['end'],
-        lpname, bugsubscriber, nodatefilter, activitysubscribers
+        lpname, bugsubscriber, activitysubscribers
     )
     print_bugs(bugs, open_browser['triage'], shortlinks, blacklist=blacklist)
 
@@ -392,7 +392,7 @@ def main(date_range=None, debug=False, open_browser=None,
         expire_end = expire_end.strftime('%Y-%m-%d')
         bugs = create_bug_list(expire_start,
                                expire_end,
-                               lpname, TEAMLPNAME, None, None,
+                               lpname, TEAMLPNAME, None,
                                tag=["server-next", "-bot-stop-nagging"])
         print_bugs(bugs, open_browser['exp'], shortlinks,
                    blacklist=blacklist)
@@ -409,7 +409,7 @@ def main(date_range=None, debug=False, open_browser=None,
         expire_end = expire_end.strftime('%Y-%m-%d')
         bugs = create_bug_list(expire_start,
                                expire_end,
-                               lpname, TEAMLPNAME, None, None,
+                               lpname, TEAMLPNAME, None,
                                tag="-bot-stop-nagging")
         print_bugs(bugs, open_browser['exp'], shortlinks,
                    blacklist=blacklist)
