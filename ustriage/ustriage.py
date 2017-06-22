@@ -320,8 +320,6 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber, nodatefilter,
     not appear to have a specific function for searching for a range.
     """
     logging.info('Please be patient, this can take a few minutes...')
-    start_date, end_date = check_dates(start_date, end_date, nodatefilter)
-
     tasks = modified_bugs(start_date, end_date, lpname, bugsubscriber,
                           activitysubscribers, tag)
 
@@ -364,6 +362,10 @@ def main(date_range=None, debug=False, open_browser=None,
         )
     else:
         activitysubscribers = []
+
+    date_range['start'], date_range['end'] = check_dates(date_range['start'],
+                                                         date_range['end'],
+                                                         nodatefilter)
 
     logging.info('---')
     logging.info('%s (%s) subscribed Bugs last touched in the specified '
