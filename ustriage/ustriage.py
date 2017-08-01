@@ -9,10 +9,12 @@ Joshua Powers <josh.powers@canonical.com>
 import argparse
 from datetime import datetime, timedelta
 import logging
+import os
 import sys
 import webbrowser
 
 from launchpadlib.launchpad import Launchpad
+from launchpadlib.credentials import UnencryptedFileCredentialStore
 
 from task import Task
 
@@ -35,7 +37,10 @@ def connect_launchpad():
     Will connect you to the Launchpad website the first time you run
     this to autorize your system to connect.
     """
-    return Launchpad.login_with('ubuntu-server-triage.py', 'production')
+    cred_location = os.path.expanduser('~/.lp_creds')
+    credential_store = UnencryptedFileCredentialStore(cred_location)
+    return Launchpad.login_with('ustriage', 'production', version='devel',
+                                credential_store=credential_store)
 
 
 def check_dates(start, end=None, nodatefilter=False):
