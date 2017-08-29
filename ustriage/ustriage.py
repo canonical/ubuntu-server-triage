@@ -16,6 +16,8 @@ import webbrowser
 from launchpadlib.launchpad import Launchpad
 from launchpadlib.credentials import UnencryptedFileCredentialStore
 
+from lazr.restfulclient.errors import ClientError
+
 from task import Task
 
 PACKAGE_BLACKLIST = {
@@ -114,12 +116,15 @@ def last_activity_ours(task, activitysubscribers):
     activitysubscribers_links = {p.self_link for p in activitysubscribers}
 
     # activity_list contains a tuple of (date, person.self_link) pairs
-    activity_list = sorted(
-        (
-            [(m.date_created, m.owner.self_link) for m in task.bug.messages]
-        ),
-        key=lambda a: a[0],
-    )
+    unsorted_list = []
+    for msg in task.bug.messages:
+        try:
+            unsorted_list.append((msg.date_created, msg.owner.self_link))
+        except ClientError as exc:
+            if exc.response["status"] == "410":  # gone, user suspended
+                continue
+            raise
+    activity_list = sorted(unsorted_list, key=lambda a: a[0])
 
     most_recent_activity = activity_list.pop()
 
