@@ -117,11 +117,11 @@ def last_activity_ours(task, activitysubscribers):
 
     # activity_list contains a tuple of (date, person.self_link) pairs
     unsorted_list = []
-    for m in task.bug.messages:
+    for msg in task.bug.messages:
         try:
-            unsorted_list.append((m.date_created, m.owner.self_link))
-        except ClientError as e:
-            if e.response["status"] == "410": # gone, user suspended
+            unsorted_list.append((msg.date_created, msg.owner.self_link))
+        except ClientError as exc:
+            if exc.response["status"] == "410":  # gone, user suspended
                 continue
             raise
     activity_list = sorted(unsorted_list, key=lambda a: a[0])
