@@ -294,7 +294,7 @@ def main(date_range=None, debug=False, open_browser=None,
     end = datetime.strptime(date_range['end'], '%Y-%m-%d') - timedelta(days=1)
     end = end.strftime('%Y-%m-%d')
     logging.info('\'*\': %s is directly subscribed', lpname)
-    logging.info(u'\'†\': last bug activity is ours')
+    logging.info('\'+\': last bug activity is ours')
     logging.info('Bugs for triage on %s to %s (inclusive)',
                  date_range['start'], end)
 
