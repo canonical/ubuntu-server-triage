@@ -1,5 +1,5 @@
 name: ustriage
-version: master
+version: 2.0
 summary: Output Ubuntu Server Launchpad bugs for triage
 description: |
   Connect to Launchpad and collect Ubuntu Server bugs for triage.
@@ -11,13 +11,13 @@ confinement: strict
 
 apps:
     ustriage:
-        command: ustriage/ustriage.py
+        command: bin/ustriage
         plugs:
             - network
 
 parts:
     ustriage:
-        plugin: dump
+        plugin: python
         source: https://github.com/powersj/ubuntu-server-triage
         source-type: git
         stage-packages:

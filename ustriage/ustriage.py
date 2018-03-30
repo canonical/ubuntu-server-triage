@@ -18,7 +18,7 @@ from launchpadlib.credentials import UnencryptedFileCredentialStore
 
 from lazr.restfulclient.errors import ClientError
 
-from task import Task
+from .task import Task
 
 PACKAGE_BLACKLIST = {
     'cloud-init',
