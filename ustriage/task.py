@@ -99,7 +99,7 @@ class Task(object):
 
         flags = '%s%s' % (
             '*' if self.subscribed else '',
-            '†' if self.last_activity_ours else '',
+            u'†' if self.last_activity_ours else '',
         )
 
         return '%s - %-16s %-16s - %s' % (

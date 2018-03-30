@@ -7,11 +7,13 @@ description: |
   filtering based on various options.
 
 grade: stable
-confinement: classic
+confinement: strict
 
 apps:
     ustriage:
         command: ustriage/ustriage.py
+        plugs:
+            - network
 
 parts:
     ustriage:

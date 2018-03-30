@@ -9,6 +9,7 @@ prime/
 stage/
 snap/
 *.snap
+*.tar.bz2
 
 # C extensions
 *.so
