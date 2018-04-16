@@ -7,14 +7,11 @@ description: |
   filtering based on various options.
 
 grade: stable
-confinement: strict
+confinement: classic
 
 apps:
     ustriage:
         command: bin/ustriage
-        plugs:
-            - network
-            - dbus
 
 parts:
     ustriage:
