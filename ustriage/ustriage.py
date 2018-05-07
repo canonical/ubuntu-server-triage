@@ -94,7 +94,7 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None):
     logging.info('Found %s bugs', len(sorted_filtered_tasks))
 
     for task in sorted_filtered_tasks:
-        logging.info(task.compose_pretty(shortlinks=shortlinks))
+        print(task.compose_pretty(shortlinks=shortlinks))
         if open_in_browser:
             webbrowser.open(task.url)
 
