@@ -1,4 +1,4 @@
-"""setup.py"""
+"""Setup.py file."""
 from setuptools import setup
 
 setup(name='ustriage',

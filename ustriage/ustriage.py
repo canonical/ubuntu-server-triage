@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Output Ubuntu Server Launchpad bugs that for triage. Script accepts either
-a single date or inclusive range to find bugs.
+Output Ubuntu Server Launchpad bugs that for triage.
 
-Copyright 2017 Canonical Ltd.
+Script accepts either a single date or inclusive range to find bugs.
+
+Copyright 2017-2018 Canonical Ltd.
 Joshua Powers <josh.powers@canonical.com>
 """
 import argparse
@@ -33,11 +34,10 @@ TEAMLPNAME = "ubuntu-server"
 
 
 def connect_launchpad():
-    """
-    Using the launchpad module connect to launchpad.
+    """Use the launchpad module connect to launchpad.
 
     Will connect you to the Launchpad website the first time you run
-    this to autorize your system to connect.
+    this to authorize your system to connect.
     """
     cred_location = os.path.expanduser('~/.lp_creds')
     credential_store = UnencryptedFileCredentialStore(cred_location)
@@ -46,10 +46,7 @@ def connect_launchpad():
 
 
 def check_dates(start, end=None, nodatefilter=False):
-    """
-    Validate dates are setup correctly so we can print the range
-    and then be inclusive in dates.
-    """
+    """Validate dates are setup correctly."""
     # if start date is not set we search all bugs of a LP user/team
     if not start:
         if nodatefilter:
@@ -81,9 +78,7 @@ def check_dates(start, end=None, nodatefilter=False):
 
 
 def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None):
-    """
-    Prints the tasks in a clean-ish format.
-    """
+    """Print the tasks in a clean-ish format."""
     blacklist = blacklist or []
 
     sorted_filtered_tasks = sorted(
@@ -100,15 +95,13 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None):
 
 
 def last_activity_ours(task, activitysubscribers):
-    """
-    Work out whether the last person to work on this bug was one of us
+    """Work out whether the last person to work on this bug was one of us.
 
     task: a Launchpad task object
     activitysubscribers: a set of Launchpad person objects
 
     Returns a boolean
     """
-
     # If activitysubscribers is empty, then it wasn't one of us
     if not activitysubscribers:
         return False
@@ -150,9 +143,7 @@ def last_activity_ours(task, activitysubscribers):
 
 def create_bug_list(start_date, end_date, lpname, bugsubscriber,
                     activitysubscribers, tag=None):
-    """
-    Returns a list of bugs modified between dates.
-    """
+    """Return a list of bugs modified between dates."""
     # Distribution List: https://launchpad.net/distros
     # API Doc: https://launchpad.net/+apidoc/1.0.html
     launchpad = connect_launchpad()
@@ -209,8 +200,7 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber,
 
 
 def report_current_backlog(lpname):
-    """
-    Reports how much bugs the team is currently subscribed to.
+    """Report how many bugs the team is currently subscribed to.
 
     This value is usually needed to track how the backlog is growing/shrinking.
     """
@@ -224,7 +214,7 @@ def report_current_backlog(lpname):
 
 def print_expired_tagged_bugs(lpname, expiration, date_range, open_browser,
                               shortlinks, blacklist):
-    """Prints bugs with server-next that have not been touched in a while."""
+    """Print bugs with server-next that have not been touched in a while."""
     logging.info('')
     logging.info('---')
     logging.info('Bugs tagged \'%s\' and not touched in %s days',
@@ -245,7 +235,7 @@ def print_expired_tagged_bugs(lpname, expiration, date_range, open_browser,
 
 def print_expired_backlog_bugs(lpname, expiration, date_range, open_browser,
                                shortlinks, blacklist):
-    """Prints bugs in the backlog that have not been touched in a while."""
+    """Print bugs in the backlog that have not been touched in a while."""
     logging.info('')
     logging.info('---')
     logging.info('Bugs in backlog and not touched in %s days',
@@ -268,9 +258,7 @@ def main(date_range=None, debug=False, open_browser=None,
          lpname=TEAMLPNAME, bugsubscriber=False, nodatefilter=False,
          shortlinks=True, activitysubscribernames=None, expiration=None,
          blacklist=None):
-    """
-    Connect to Launchpad, get range of bugs, print 'em.
-    """
+    """Connect to Launchpad, get range of bugs, print 'em."""
     launchpad = connect_launchpad()
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
                         level=logging.DEBUG if debug else logging.INFO)
@@ -312,7 +300,7 @@ def main(date_range=None, debug=False, open_browser=None,
 
 
 def launch():
-    """Parse arguments provided"""
+    """Parse arguments provided."""
     parser = argparse.ArgumentParser()
     parser.add_argument('start_date',
                         nargs='?',
