@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 import logging
 import os
 import sys
+import time
 import webbrowser
 
 from launchpadlib.launchpad import Launchpad
@@ -88,10 +89,18 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None):
 
     logging.info('Found %s bugs', len(sorted_filtered_tasks))
 
+    opened = False
     for task in sorted_filtered_tasks:
         print(task.compose_pretty(shortlinks=shortlinks))
+
         if open_in_browser:
-            webbrowser.open(task.url)
+            if opened:
+                webbrowser.open_new_tab(task.url)
+                time.sleep(1.2)
+            else:
+                webbrowser.open(task.url)
+                opened = True
+                time.sleep(5)
 
 
 def last_activity_ours(task, activitysubscribers):
