@@ -9,12 +9,10 @@ The easiest way to obtain the script and keep it updated is to use the snap:
 sudo snap install ustriage --classic
 ```
 
-If using the snap is not possible, you can instead obtain and run it by:
+If using the snap is not possible, you can instead obtain it from git and run it by:
 ```
-wget https://raw.githubusercontent.com/powersj/ubuntu-server-triage/master/ustriage/ustriage.py
-chmod +x ustriage.py 
 # Running with no arguments will get previous day's bugs
-./ustriage.py
+python -m ustriage
 ```
 
 ## Dates
