@@ -92,7 +92,11 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None):
     opened = False
     reportedbugs = []
     for task in sorted_filtered_tasks:
-        print(task.compose_pretty(shortlinks=shortlinks))
+        if task.number in reportedbugs:
+            print(task.compose_dup(shortlinks=shortlinks))
+            continue
+        else:
+            print(task.compose_pretty(shortlinks=shortlinks))
 
         if open_in_browser:
             if opened:
