@@ -132,4 +132,4 @@ class Task:
 
     def sort_key(self):
         """Sort method."""
-        return (not self.last_activity_ours, self.src)
+        return (not self.last_activity_ours, self.number, self.src)
