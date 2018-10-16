@@ -90,6 +90,7 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None):
     logging.info('Found %s bugs', len(sorted_filtered_tasks))
 
     opened = False
+    reportedbugs = []
     for task in sorted_filtered_tasks:
         print(task.compose_pretty(shortlinks=shortlinks))
 
@@ -101,6 +102,7 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None):
                 webbrowser.open(task.url)
                 opened = True
                 time.sleep(5)
+        reportedbugs.append(task.number)
 
 
 def last_activity_ours(task, activitysubscribers):
