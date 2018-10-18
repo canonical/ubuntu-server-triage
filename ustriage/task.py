@@ -110,6 +110,26 @@ class Task:
             ('[%s]' % self.src), self.short_title
         )
 
+    def compose_dup(self, shortlinks=True):
+        """Compose a printable line of reduced information for a dup."""
+        if shortlinks:
+            duplen = str(self.BUG_NUMBER_LENGTH + len(self.SHORTLINK_ROOT))
+        else:
+            duplen = str(self.BUG_NUMBER_LENGTH + len(self.LONG_URL_ROOT))
+        format_string = ('%-' + duplen + 's')
+        dupprefix = format_string % 'also:'
+
+        flags = '%s%s' % (
+            '*' if self.subscribed else '',
+            '+' if self.last_activity_ours else '',
+        )
+
+        return u'%s - %-16s %-16s - %s' % (
+            dupprefix,
+            ('%s(%s)' % (flags, self.status)),
+            ('[%s]' % self.src), self.short_title
+        )
+
     def sort_key(self):
         """Sort method."""
-        return (not self.last_activity_ours, self.src)
+        return (not self.last_activity_ours, self.number, self.src)
