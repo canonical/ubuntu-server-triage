@@ -303,11 +303,17 @@ def main(date_range=None, debug=False, open_browser=None,
     pretty_end = inclusive_end.strftime('%Y-%m-%d (%A)')
     logging.info('\'*\': %s is directly subscribed', lpname)
     logging.info('\'+\': last bug activity is ours')
-    logging.info(
-        'Bugs for triage on %s to %s (inclusive)',
-        pretty_start,
-        pretty_end
-    )
+    if inclusive_start == inclusive_end:
+        logging.info(
+            'Bugs last updated on %s',
+            pretty_start,
+        )
+    else:
+        logging.info(
+            'Bugs last updated between %s and %s inclusive',
+            pretty_start,
+            pretty_end
+        )
 
 
     bugs = create_bug_list(
