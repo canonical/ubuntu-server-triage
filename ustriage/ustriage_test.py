@@ -28,3 +28,17 @@ def test_auto_date_range_weekend(today, keyword):
     today = parse_test_date(today)
     with pytest.raises(ValueError):
         target.auto_date_range(keyword, today=today)
+
+
+@pytest.mark.parametrize('start,end,expected', [
+    ('2019-05-10', '2019-05-12', 'Monday triage'),
+    ('2019-05-13', '2019-05-13', 'Tuesday triage'),
+    ('2019-05-06', '2019-05-06', 'Tuesday triage'),
+    ('2019-05-07', '2019-05-07', 'Wednesday triage'),
+    ('2019-05-06', '2019-05-07', None),  # two days apart, not Fri-Sun
+    ('2019-05-07', '2019-05-06', None),  # reverse range definition
+    ('2019-05-06', '2019-05-09', None),  # more than two days apart
+    ('2019-05-18', '2019-05-18', None),  # Saturday
+])
+def test_reverse_auto_date_range(start, end, expected):
+    assert target.reverse_auto_date_range(parse_test_date(start), parse_test_date(end)) == expected

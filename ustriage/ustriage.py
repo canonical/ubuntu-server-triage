@@ -70,6 +70,39 @@ def auto_date_range(keyword, today=None):
         return start, end
 
 
+def reverse_auto_date_range(start, end):
+    """Given a date range, return the "triage day" if it fits the process
+
+    This is the inverse of auto_date_range(). If the range matches a known
+    range the fits the process, describe the range as a string such as "Monday
+    triage". If no match, return None.
+
+    :param datetime.date start: the start of the range (inclusive)
+    :param datetime.date end: the end of the range (inclusive)
+    :returns: string describing the triage, or None
+    :rtype: str or None
+    """
+    if start > end:
+        return None  # process not specified
+    if (end - start).days > 2:
+        return None  # not a day or weekend triage range: process not specified
+
+    start_weekday = start.weekday()
+    end_weekday = end.weekday()
+
+    if start_weekday == 4 and end_weekday == 6:
+        return "Monday triage"
+    elif start == end:
+        if start_weekday in [5, 6]:
+            return None  # weekend: process not specified
+        else:
+            # must be regular day triage
+            day = ['Tuesday', 'Wednesday', 'Thursday', 'Friday'][start_weekday]
+            return "%s triage" % day
+    else:
+        return None
+
+
 def connect_launchpad():
     """Use the launchpad module connect to launchpad.
 
