@@ -11,6 +11,7 @@ import argparse
 from datetime import date, datetime, timedelta
 import logging
 import os
+import re
 import sys
 import time
 import webbrowser
@@ -95,10 +96,22 @@ def parse_dates(start, end=None):
             start = (yesterday - timedelta(days=2)).strftime('%Y-%m-%d')
             end = yesterday.strftime('%Y-%m-%d')
 
-    # If end date is not set set it to start so we can
-    # properly show the inclusive list of dates.
-    if not end:
-        end = start
+    if re.fullmatch(r'\d{4}-\d{2}-\d{2}', start):
+        # If end date is not set set it to start so we can
+        # properly show the inclusive list of dates.
+        if not end:
+            end = start
+
+    elif start and not end:
+        try:
+            start_date, end_date = auto_date_range(start)
+            start = start_date.strftime('%Y-%m-%d')
+            end = end_date.strftime('%Y-%m-%d')
+        except ValueError as e:
+            raise ValueError("Cannot parse date: %s" % start) from e
+
+    else:
+        raise ValueError("Cannot parse date range: %s %s" % (start, end))
 
     # Always add one to end date to make the dates inclusive
     end = datetime.strptime(end, '%Y-%m-%d') + timedelta(days=1)
