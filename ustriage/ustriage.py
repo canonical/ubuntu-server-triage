@@ -81,18 +81,12 @@ def connect_launchpad():
                                 credential_store=credential_store)
 
 
-def parse_dates(start, end=None, nodatefilter=False):
+def parse_dates(start, end=None):
     """Validate dates are setup correctly."""
     # if start date is not set we search all bugs of a LP user/team
     if not start:
-        if nodatefilter:
-            logging.info('Searching all bugs, no date filter')
-            return datetime.min, datetime.now()
-
         logging.info('No date set, auto-search yesterday/weekend for the '
                      'most common triage.')
-        logging.info('Please specify -a if you really '
-                     'want to search without any date filter')
         yesterday = datetime.now().date() - timedelta(days=1)
         if yesterday.weekday() != 6:
             start = yesterday.strftime('%Y-%m-%d')
@@ -305,9 +299,8 @@ def print_expired_backlog_bugs(lpname, expiration, date_range, open_browser,
 
 
 def main(date_range=None, debug=False, open_browser=None,
-         lpname=TEAMLPNAME, bugsubscriber=False, nodatefilter=False,
-         shortlinks=True, activitysubscribernames=None, expiration=None,
-         blacklist=None):
+         lpname=TEAMLPNAME, bugsubscriber=False, shortlinks=True,
+         activitysubscribernames=None, expiration=None, blacklist=None):
     """Connect to Launchpad, get range of bugs, print 'em."""
     launchpad = connect_launchpad()
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
@@ -324,8 +317,7 @@ def main(date_range=None, debug=False, open_browser=None,
         activitysubscribers = []
 
     date_range['start'], date_range['end'] = parse_dates(date_range['start'],
-                                                         date_range['end'],
-                                                         nodatefilter)
+                                                         date_range['end'])
 
     logging.info('---')
     # Need to display date range as inclusive
@@ -382,8 +374,6 @@ def launch():
     parser.add_argument('-O', '--open-expire', action='store_true',
                         dest='openexp',
                         help='open expiring bugs in web browser')
-    parser.add_argument('-a', '--nodatefilter', action='store_true',
-                        help='show all (no date restriction)')
     parser.add_argument('-n', '--lpname', default=TEAMLPNAME,
                         help='specify the launchpad name to search for')
     parser.add_argument('-b', '--bugsubscriber', action='store_true',
@@ -432,7 +422,7 @@ def launch():
                   'end': args.end_date}
 
     main(date_range, args.debug, open_browser,
-         args.lpname, args.bugsubscriber, args.nodatefilter, not args.fullurls,
+         args.lpname, args.bugsubscriber, not args.fullurls,
          args.activitysubscribers, expiration,
          blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST)
 
