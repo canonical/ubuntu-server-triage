@@ -8,13 +8,15 @@ Copyright 2017-2018 Canonical Ltd.
 Joshua Powers <josh.powers@canonical.com>
 """
 import argparse
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import logging
 import os
 import sys
 import time
 import webbrowser
 
+import dateutil.parser
+import dateutil.relativedelta
 from launchpadlib.launchpad import Launchpad
 from launchpadlib.credentials import UnencryptedFileCredentialStore
 
@@ -32,6 +34,39 @@ PACKAGE_BLACKLIST = {
     'maas',
 }
 TEAMLPNAME = "ubuntu-server"
+
+
+def auto_date_range(keyword, today=None):
+    """Given a "day of week" keyword, calculate the inclusive date range
+
+    Work out what date range the user "means" based on the Server Team's bug
+    triage process that names the day the triage is expected to be done.
+
+    Examples: "Monday triage" means the range covering the previous Friday,
+    Saturday and Sunday; "Tuesday triage" means the previous Monday only.
+
+    :param str keyword: what the user wants in the form of the name of a day of
+        the week
+    :param datetime.date today: calculations are made relative to the current
+        date. Can be overridden with this parameter for tests. Defaults to the
+        current day
+    :rtype: tuple(datetime.date, datetime.date)
+    """
+    today = today or date.today()
+    requested_weekday = dateutil.parser.parse(keyword, ignoretz=True).weekday()
+    last_occurrence = today + dateutil.relativedelta.relativedelta(weekday=dateutil.relativedelta.weekday(requested_weekday, -1))
+    if requested_weekday in [5, 6]:
+        raise ValueError("No triage range is specified for weekday triage")
+    if last_occurrence.weekday():
+        # A Monday was not specified, so this is normal "previous day" triage
+        start = last_occurrence + dateutil.relativedelta.relativedelta(days=-1)
+        end = start
+        return start, end
+    else:
+        # A Monday was specified, so this is "weekend" triage
+        start = last_occurrence + dateutil.relativedelta.relativedelta(weekday=dateutil.relativedelta.FR(-1))
+        end = last_occurrence + dateutil.relativedelta.relativedelta(weekday=dateutil.relativedelta.SU(-1))
+        return start, end
 
 
 def connect_launchpad():
