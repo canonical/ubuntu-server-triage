@@ -293,13 +293,22 @@ def main(date_range=None, debug=False, open_browser=None,
                                                          nodatefilter)
 
     logging.info('---')
-    # Need to make date range inclusive
-    end = datetime.strptime(date_range['end'], '%Y-%m-%d') - timedelta(days=1)
-    end = end.strftime('%Y-%m-%d')
+    # Need to display date range as inclusive
+    inclusive_start = datetime.strptime(date_range['start'], '%Y-%m-%d')
+    inclusive_end = (
+        datetime.strptime(date_range['end'], '%Y-%m-%d') -
+        timedelta(days=1)
+    )
+    pretty_start = inclusive_start.strftime('%Y-%m-%d (%A)')
+    pretty_end = inclusive_end.strftime('%Y-%m-%d (%A)')
     logging.info('\'*\': %s is directly subscribed', lpname)
     logging.info('\'+\': last bug activity is ours')
-    logging.info('Bugs for triage on %s to %s (inclusive)',
-                 date_range['start'], end)
+    logging.info(
+        'Bugs for triage on %s to %s (inclusive)',
+        pretty_start,
+        pretty_end
+    )
+
 
     bugs = create_bug_list(
         date_range['start'], date_range['end'],
