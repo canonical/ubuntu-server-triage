@@ -388,6 +388,9 @@ def main(date_range=None, debug=False, open_browser=None,
             pretty_end
         )
 
+    triage_day_name = reverse_auto_date_range(inclusive_start, inclusive_end)
+    if triage_day_name:
+        logging.info("Date range identified as: \"%s\"", triage_day_name)
 
     bugs = create_bug_list(
         date_range['start'], date_range['end'],
