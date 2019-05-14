@@ -81,7 +81,7 @@ def connect_launchpad():
                                 credential_store=credential_store)
 
 
-def check_dates(start, end=None, nodatefilter=False):
+def parse_dates(start, end=None, nodatefilter=False):
     """Validate dates are setup correctly."""
     # if start date is not set we search all bugs of a LP user/team
     if not start:
@@ -323,7 +323,7 @@ def main(date_range=None, debug=False, open_browser=None,
     else:
         activitysubscribers = []
 
-    date_range['start'], date_range['end'] = check_dates(date_range['start'],
+    date_range['start'], date_range['end'] = parse_dates(date_range['start'],
                                                          date_range['end'],
                                                          nodatefilter)
 
