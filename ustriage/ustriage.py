@@ -8,13 +8,16 @@ Copyright 2017-2018 Canonical Ltd.
 Joshua Powers <josh.powers@canonical.com>
 """
 import argparse
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import logging
 import os
+import re
 import sys
 import time
 import webbrowser
 
+import dateutil.parser
+import dateutil.relativedelta
 from launchpadlib.launchpad import Launchpad
 from launchpadlib.credentials import UnencryptedFileCredentialStore
 
@@ -34,6 +37,72 @@ PACKAGE_BLACKLIST = {
 TEAMLPNAME = "ubuntu-server"
 
 
+def auto_date_range(keyword, today=None):
+    """Given a "day of week" keyword, calculate the inclusive date range
+
+    Work out what date range the user "means" based on the Server Team's bug
+    triage process that names the day the triage is expected to be done.
+
+    Examples: "Monday triage" means the range covering the previous Friday,
+    Saturday and Sunday; "Tuesday triage" means the previous Monday only.
+
+    :param str keyword: what the user wants in the form of the name of a day of
+        the week
+    :param datetime.date today: calculations are made relative to the current
+        date. Can be overridden with this parameter for tests. Defaults to the
+        current day
+    :rtype: tuple(datetime.date, datetime.date)
+    """
+    today = today or date.today()
+    requested_weekday = dateutil.parser.parse(keyword, ignoretz=True).weekday()
+    last_occurrence = today + dateutil.relativedelta.relativedelta(weekday=dateutil.relativedelta.weekday(requested_weekday, -1))
+    if requested_weekday in [5, 6]:
+        raise ValueError("No triage range is specified for weekday triage")
+    if last_occurrence.weekday():
+        # A Monday was not specified, so this is normal "previous day" triage
+        start = last_occurrence + dateutil.relativedelta.relativedelta(days=-1)
+        end = start
+        return start, end
+    else:
+        # A Monday was specified, so this is "weekend" triage
+        start = last_occurrence + dateutil.relativedelta.relativedelta(weekday=dateutil.relativedelta.FR(-1))
+        end = last_occurrence + dateutil.relativedelta.relativedelta(weekday=dateutil.relativedelta.SU(-1))
+        return start, end
+
+
+def reverse_auto_date_range(start, end):
+    """Given a date range, return the "triage day" if it fits the process
+
+    This is the inverse of auto_date_range(). If the range matches a known
+    range the fits the process, describe the range as a string such as "Monday
+    triage". If no match, return None.
+
+    :param datetime.date start: the start of the range (inclusive)
+    :param datetime.date end: the end of the range (inclusive)
+    :returns: string describing the triage, or None
+    :rtype: str or None
+    """
+    if start > end:
+        return None  # process not specified
+    if (end - start).days > 2:
+        return None  # not a day or weekend triage range: process not specified
+
+    start_weekday = start.weekday()
+    end_weekday = end.weekday()
+
+    if start_weekday == 4 and end_weekday == 6:
+        return "Monday triage"
+    elif start == end:
+        if start_weekday in [5, 6]:
+            return None  # weekend: process not specified
+        else:
+            # must be regular day triage
+            day = ['Tuesday', 'Wednesday', 'Thursday', 'Friday'][start_weekday]
+            return "%s triage" % day
+    else:
+        return None
+
+
 def connect_launchpad():
     """Use the launchpad module connect to launchpad.
 
@@ -46,18 +115,12 @@ def connect_launchpad():
                                 credential_store=credential_store)
 
 
-def check_dates(start, end=None, nodatefilter=False):
+def parse_dates(start, end=None):
     """Validate dates are setup correctly."""
     # if start date is not set we search all bugs of a LP user/team
     if not start:
-        if nodatefilter:
-            logging.info('Searching all bugs, no date filter')
-            return datetime.min, datetime.now()
-
         logging.info('No date set, auto-search yesterday/weekend for the '
                      'most common triage.')
-        logging.info('Please specify -a if you really '
-                     'want to search without any date filter')
         yesterday = datetime.now().date() - timedelta(days=1)
         if yesterday.weekday() != 6:
             start = yesterday.strftime('%Y-%m-%d')
@@ -66,10 +129,22 @@ def check_dates(start, end=None, nodatefilter=False):
             start = (yesterday - timedelta(days=2)).strftime('%Y-%m-%d')
             end = yesterday.strftime('%Y-%m-%d')
 
-    # If end date is not set set it to start so we can
-    # properly show the inclusive list of dates.
-    if not end:
-        end = start
+    if re.fullmatch(r'\d{4}-\d{2}-\d{2}', start):
+        # If end date is not set set it to start so we can
+        # properly show the inclusive list of dates.
+        if not end:
+            end = start
+
+    elif start and not end:
+        try:
+            start_date, end_date = auto_date_range(start)
+            start = start_date.strftime('%Y-%m-%d')
+            end = end_date.strftime('%Y-%m-%d')
+        except ValueError as e:
+            raise ValueError("Cannot parse date: %s" % start) from e
+
+    else:
+        raise ValueError("Cannot parse date range: %s %s" % (start, end))
 
     # Always add one to end date to make the dates inclusive
     end = datetime.strptime(end, '%Y-%m-%d') + timedelta(days=1)
@@ -270,9 +345,8 @@ def print_expired_backlog_bugs(lpname, expiration, date_range, open_browser,
 
 
 def main(date_range=None, debug=False, open_browser=None,
-         lpname=TEAMLPNAME, bugsubscriber=False, nodatefilter=False,
-         shortlinks=True, activitysubscribernames=None, expiration=None,
-         blacklist=None):
+         lpname=TEAMLPNAME, bugsubscriber=False, shortlinks=True,
+         activitysubscribernames=None, expiration=None, blacklist=None):
     """Connect to Launchpad, get range of bugs, print 'em."""
     launchpad = connect_launchpad()
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
@@ -288,18 +362,35 @@ def main(date_range=None, debug=False, open_browser=None,
     else:
         activitysubscribers = []
 
-    date_range['start'], date_range['end'] = check_dates(date_range['start'],
-                                                         date_range['end'],
-                                                         nodatefilter)
+    date_range['start'], date_range['end'] = parse_dates(date_range['start'],
+                                                         date_range['end'])
 
     logging.info('---')
-    # Need to make date range inclusive
-    end = datetime.strptime(date_range['end'], '%Y-%m-%d') - timedelta(days=1)
-    end = end.strftime('%Y-%m-%d')
+    # Need to display date range as inclusive
+    inclusive_start = datetime.strptime(date_range['start'], '%Y-%m-%d')
+    inclusive_end = (
+        datetime.strptime(date_range['end'], '%Y-%m-%d') -
+        timedelta(days=1)
+    )
+    pretty_start = inclusive_start.strftime('%Y-%m-%d (%A)')
+    pretty_end = inclusive_end.strftime('%Y-%m-%d (%A)')
     logging.info('\'*\': %s is directly subscribed', lpname)
     logging.info('\'+\': last bug activity is ours')
-    logging.info('Bugs for triage on %s to %s (inclusive)',
-                 date_range['start'], end)
+    if inclusive_start == inclusive_end:
+        logging.info(
+            'Bugs last updated on %s',
+            pretty_start,
+        )
+    else:
+        logging.info(
+            'Bugs last updated between %s and %s inclusive',
+            pretty_start,
+            pretty_end
+        )
+
+    triage_day_name = reverse_auto_date_range(inclusive_start, inclusive_end)
+    if triage_day_name:
+        logging.info("Date range identified as: \"%s\"", triage_day_name)
 
     bugs = create_bug_list(
         date_range['start'], date_range['end'],
@@ -332,8 +423,6 @@ def launch():
     parser.add_argument('-O', '--open-expire', action='store_true',
                         dest='openexp',
                         help='open expiring bugs in web browser')
-    parser.add_argument('-a', '--nodatefilter', action='store_true',
-                        help='show all (no date restriction)')
     parser.add_argument('-n', '--lpname', default=TEAMLPNAME,
                         help='specify the launchpad name to search for')
     parser.add_argument('-b', '--bugsubscriber', action='store_true',
@@ -382,7 +471,7 @@ def launch():
                   'end': args.end_date}
 
     main(date_range, args.debug, open_browser,
-         args.lpname, args.bugsubscriber, args.nodatefilter, not args.fullurls,
+         args.lpname, args.bugsubscriber, not args.fullurls,
          args.activitysubscribers, expiration,
          blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST)
 
