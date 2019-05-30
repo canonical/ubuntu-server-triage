@@ -38,7 +38,7 @@ TEAMLPNAME = "ubuntu-server"
 
 
 def auto_date_range(keyword, today=None):
-    """Given a "day of week" keyword, calculate the inclusive date range
+    """Given a "day of week" keyword, calculate the inclusive date range.
 
     Work out what date range the user "means" based on the Server Team's bug
     triage process that names the day the triage is expected to be done.
@@ -55,23 +55,30 @@ def auto_date_range(keyword, today=None):
     """
     today = today or date.today()
     requested_weekday = dateutil.parser.parse(keyword, ignoretz=True).weekday()
-    last_occurrence = today + dateutil.relativedelta.relativedelta(weekday=dateutil.relativedelta.weekday(requested_weekday, -1))
+    last_occurrence = today + dateutil.relativedelta.relativedelta(
+        weekday=dateutil.relativedelta.weekday(requested_weekday, -1)
+    )
     if requested_weekday in [5, 6]:
         raise ValueError("No triage range is specified for weekday triage")
+
     if last_occurrence.weekday():
         # A Monday was not specified, so this is normal "previous day" triage
         start = last_occurrence + dateutil.relativedelta.relativedelta(days=-1)
         end = start
-        return start, end
     else:
         # A Monday was specified, so this is "weekend" triage
-        start = last_occurrence + dateutil.relativedelta.relativedelta(weekday=dateutil.relativedelta.FR(-1))
-        end = last_occurrence + dateutil.relativedelta.relativedelta(weekday=dateutil.relativedelta.SU(-1))
-        return start, end
+        start = last_occurrence + dateutil.relativedelta.relativedelta(
+            weekday=dateutil.relativedelta.FR(-1)
+        )
+        end = last_occurrence + dateutil.relativedelta.relativedelta(
+            weekday=dateutil.relativedelta.SU(-1)
+        )
+
+    return start, end
 
 
 def reverse_auto_date_range(start, end):
-    """Given a date range, return the "triage day" if it fits the process
+    """Given a date range, return the "triage day" if it fits the process.
 
     This is the inverse of auto_date_range(). If the range matches a known
     range the fits the process, describe the range as a string such as "Monday
@@ -92,15 +99,16 @@ def reverse_auto_date_range(start, end):
 
     if start_weekday == 4 and end_weekday == 6:
         return "Monday triage"
-    elif start == end:
+
+    if start == end:
         if start_weekday in [5, 6]:
             return None  # weekend: process not specified
-        else:
-            # must be regular day triage
-            day = ['Tuesday', 'Wednesday', 'Thursday', 'Friday'][start_weekday]
-            return "%s triage" % day
-    else:
-        return None
+
+        # must be regular day triage
+        day = ['Tuesday', 'Wednesday', 'Thursday', 'Friday'][start_weekday]
+        return "%s triage" % day
+
+    return None
 
 
 def connect_launchpad():
@@ -140,8 +148,8 @@ def parse_dates(start, end=None):
             start_date, end_date = auto_date_range(start)
             start = start_date.strftime('%Y-%m-%d')
             end = end_date.strftime('%Y-%m-%d')
-        except ValueError as e:
-            raise ValueError("Cannot parse date: %s" % start) from e
+        except ValueError as error:
+            raise ValueError("Cannot parse date: %s" % start) from error
 
     else:
         raise ValueError("Cannot parse date range: %s %s" % (start, end))

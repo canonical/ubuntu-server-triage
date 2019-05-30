@@ -5,7 +5,7 @@ jobs=2
 
 
 [MESSAGES CONTROL]
-disable=R0913
+disable=R0913, R0914, E0401
 
 
 [REPORTS]
