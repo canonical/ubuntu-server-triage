@@ -80,7 +80,7 @@ class Task:
         """Bug summary."""
         # This could be self.obj.bug.title but using self.title is
         # significantly faster
-        return ' '.join(self.title.split(' ')[5:]).replace('"', '')
+        return ' '.join(self.title.split(' ')[6:]).replace('"', '')
 
     def compose_pretty(self, shortlinks=True):
         """Compose a printable line of relevant information."""

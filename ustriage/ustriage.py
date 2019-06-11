@@ -36,6 +36,60 @@ PACKAGE_BLACKLIST = {
 }
 TEAMLPNAME = "ubuntu-server"
 
+DISTRIBUTION_RESOURCE_TYPE_LINK = (
+    'https://api.launchpad.net/devel/#distribution'
+)
+
+
+def searchTasks_in_all_active_series(distro, *args, **kwargs):  # noqa: E501 pylint: disable=invalid-name
+    """Unionize searchTasks() for all active series of a distribution
+
+    A searchTasks() Launchpad call against a Launchpad distribution will not
+    return series tasks if the development task is marked Fix Released (LP:
+    #314432; see also comment 26 in that bug). The workaround is to call
+    searchTasks() individually against all required series and unionize the
+    results. This function provides an implementation of this workaround.
+
+    One difference to calling searchTasks() directly is that the tasks returned
+    by this function are targetted to particular series. It is not possible to
+    return tasks targetted just to the distribution in the general case because
+    no such tasks exist for bugs where the development task is marked Fix
+    Released (the exact case we're fixing).
+
+    This implementation returns only one series task for each found bug and
+    package name, not all of them. An arbitrary task is picked. Only active
+    serieses are considered.
+
+    :param distro: distribution object from launchpadlib
+    :param *args: arguments to pass to the wrapped searchTasks calls
+    :param **kargs: arguments to pass to the wrapped searchTasks calls
+    :rtype: sequence(bug_task object from launchpadlib)
+    """
+    # This workaround implementation is to be called on distribution objects
+    # only; other objects (typically a series directly) are not affected, and
+    # the caller shouldn't be using this workaround in that case. If needed, we
+    # could modify this to wrap searchTasks for other object types if we don't
+    # want the caller to have to know which to use, but YAGNI for now.
+    assert distro.resource_type_link == DISTRIBUTION_RESOURCE_TYPE_LINK
+
+    result = {}
+    for series in distro.series_collection:
+        if not series.active:
+            continue
+        # Deduplicate against the bug number and source package name as a
+        # key. Keying additionally on the distribution is not required
+        # because all results must be against the same distribution since
+        # that's what we queried against. Here, "target" must be a
+        # source_package object because we queried specifically against a
+        # distro_series so we can assume that a name attribute is always
+        # present.
+        result.update({
+            (task.bug_link, task.target.name): task
+            for task in series.searchTasks(*args, **kwargs)
+        })
+
+    return result.values()
+
 
 def auto_date_range(keyword, today=None):
     """Given a "day of week" keyword, calculate the inclusive date range.
@@ -251,12 +305,14 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber,
     if bugsubscriber:
         # direct subscriber
         bugs_since_start = {
-            task.self_link: task for task in project.searchTasks(
+            task.self_link: task for task in searchTasks_in_all_active_series(
+                project,
                 modified_since=start_date, bug_subscriber=team, tags=tag,
                 tags_combinator='All'
             )}
         bugs_since_end = {
-            task.self_link: task for task in project.searchTasks(
+            task.self_link: task for task in searchTasks_in_all_active_series(
+                project,
                 modified_since=end_date, bug_subscriber=team, tags=tag,
                 tags_combinator='All'
             )}
@@ -267,15 +323,18 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber,
     else:
         # structural_subscriber sans already subscribed
         bugs_since_start = {
-            task.self_link: task for task in project.searchTasks(
+            task.self_link: task for task in searchTasks_in_all_active_series(
+                project,
                 modified_since=start_date, structural_subscriber=team
             )}
         bugs_since_end = {
-            task.self_link: task for task in project.searchTasks(
+            task.self_link: task for task in searchTasks_in_all_active_series(
+                project,
                 modified_since=end_date, structural_subscriber=team
             )}
         already_sub_since_start = {
-            task.self_link: task for task in project.searchTasks(
+            task.self_link: task for task in searchTasks_in_all_active_series(
+                project,
                 modified_since=start_date, structural_subscriber=team,
                 bug_subscriber=team
             )}
@@ -305,7 +364,7 @@ def report_current_backlog(lpname):
     launchpad = connect_launchpad()
     project = launchpad.distributions['Ubuntu']
     team = launchpad.people[lpname]
-    sub_bugs = project.searchTasks(bug_subscriber=team)
+    sub_bugs = searchTasks_in_all_active_series(project, bug_subscriber=team)
     logging.info('Team \'%s\' currently subscribed to %d bugs',
                  lpname, len(sub_bugs))
 
