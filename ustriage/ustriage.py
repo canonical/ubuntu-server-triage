@@ -42,7 +42,7 @@ DISTRIBUTION_RESOURCE_TYPE_LINK = (
 
 
 def searchTasks_in_all_active_series(distro, *args, **kwargs):  # noqa: E501 pylint: disable=invalid-name
-    """Unionize searchTasks() for all active series of a distribution
+    """Unionize searchTasks() for all active series of a distribution.
 
     A searchTasks() Launchpad call against a Launchpad distribution will not
     return series tasks if the development task is marked Fix Released (LP:
