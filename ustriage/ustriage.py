@@ -36,6 +36,28 @@ PACKAGE_BLACKLIST = {
 }
 TEAMLPNAME = "ubuntu-server"
 
+POSSIBLE_BUG_STATUSES = [
+    "New",
+    "Incomplete",
+    "Opinion",
+    "Invalid",
+    "Won't Fix",
+    "Expired",
+    "Confirmed",
+    "Triaged",
+    "In Progress",
+    "Fix Committed",
+    "Fix Released",
+]
+
+OPEN_BUG_STATUSES = [
+    "New",
+    "Confirmed",
+    "Triaged",
+    "In Progress",
+    "Fix Committed",
+]
+
 DISTRIBUTION_RESOURCE_TYPE_LINK = (
     'https://api.launchpad.net/devel/#distribution'
 )
@@ -309,8 +331,10 @@ def last_activity_ours(task, activitysubscribers):
     )
 
 
-def create_bug_list(start_date, end_date, lpname, bugsubscriber,
-                    activitysubscribers, tag=None):
+def create_bug_list(
+        start_date, end_date, lpname, bugsubscriber, activitysubscribers,
+        tag=None, status=POSSIBLE_BUG_STATUSES
+):  # pylint: disable=dangerous-default-value
     """Return a list of bugs modified between dates."""
     # Distribution List: https://launchpad.net/distros
     # API Doc: https://launchpad.net/+apidoc/1.0.html
@@ -324,13 +348,15 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber,
             task.self_link: task for task in searchTasks_in_all_active_series(
                 project,
                 modified_since=start_date, bug_subscriber=team, tags=tag,
-                tags_combinator='All'
+                tags_combinator='All',
+                status=status,
             )}
         bugs_since_end = {
             task.self_link: task for task in searchTasks_in_all_active_series(
                 project,
                 modified_since=end_date, bug_subscriber=team, tags=tag,
-                tags_combinator='All'
+                tags_combinator='All',
+                status=status,
             )}
 
         # N/A for direct subscribers
@@ -341,18 +367,21 @@ def create_bug_list(start_date, end_date, lpname, bugsubscriber,
         bugs_since_start = {
             task.self_link: task for task in searchTasks_in_all_active_series(
                 project,
-                modified_since=start_date, structural_subscriber=team
+                modified_since=start_date, structural_subscriber=team,
+                status=status,
             )}
         bugs_since_end = {
             task.self_link: task for task in searchTasks_in_all_active_series(
                 project,
-                modified_since=end_date, structural_subscriber=team
+                modified_since=end_date, structural_subscriber=team,
+                status=status,
             )}
         already_sub_since_start = {
             task.self_link: task for task in searchTasks_in_all_active_series(
                 project,
                 modified_since=start_date, structural_subscriber=team,
-                bug_subscriber=team
+                bug_subscriber=team,
+                status=status,
             )}
 
     bugs_in_range = {
@@ -384,6 +413,7 @@ def report_current_backlog(lpname):
         task.bug_link for task in searchTasks_in_all_active_series(
             project,
             bug_subscriber=team,
+            status=OPEN_BUG_STATUSES,
         )
     )))
     logging.info(
@@ -406,10 +436,13 @@ def print_expired_tagged_bugs(lpname, expiration, date_range, open_browser,
                   - timedelta(days=expiration['expire_next']))
     expire_start = expire_start.strftime('%Y-%m-%d')
     expire_end = expire_end.strftime('%Y-%m-%d')
-    bugs = create_bug_list(expire_start,
-                           expire_end,
-                           lpname, TEAMLPNAME, None,
-                           tag=["server-next", "-bot-stop-nagging"])
+    bugs = create_bug_list(
+        expire_start,
+        expire_end,
+        lpname, TEAMLPNAME, None,
+        tag=["server-next", "-bot-stop-nagging"],
+        status=OPEN_BUG_STATUSES,
+    )
     print_bugs(bugs, open_browser['exp'], shortlinks,
                blacklist=blacklist)
 
@@ -427,10 +460,13 @@ def print_expired_backlog_bugs(lpname, expiration, date_range, open_browser,
                   - timedelta(days=expiration['expire']))
     expire_start = expire_start.strftime('%Y-%m-%d')
     expire_end = expire_end.strftime('%Y-%m-%d')
-    bugs = create_bug_list(expire_start,
-                           expire_end,
-                           lpname, TEAMLPNAME, None,
-                           tag="-bot-stop-nagging")
+    bugs = create_bug_list(
+        expire_start,
+        expire_end,
+        lpname, TEAMLPNAME, None,
+        tag="-bot-stop-nagging",
+        status=OPEN_BUG_STATUSES,
+    )
     print_bugs(bugs, open_browser['exp'], shortlinks,
                blacklist=blacklist)
 
