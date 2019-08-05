@@ -12,6 +12,15 @@ Joshua Powers <josh.powers@canonical.com>
 from functools import lru_cache
 
 
+DISTRIBUTION_SOURCE_PACKAGE_RESOURCE_TYPE_LINK = (
+    'https://api.launchpad.net/devel/#distribution_source_package'
+)
+
+SOURCE_PACKAGE_RESOURCE_TYPE_LINK = (
+    'https://api.launchpad.net/devel/#source_package'
+)
+
+
 class Task:
     """Our representation of a Launchpad task."""
 
@@ -80,7 +89,11 @@ class Task:
         """Bug summary."""
         # This could be self.obj.bug.title but using self.title is
         # significantly faster
-        return ' '.join(self.title.split(' ')[5:]).replace('"', '')
+        start_field = {
+            DISTRIBUTION_SOURCE_PACKAGE_RESOURCE_TYPE_LINK: 5,
+            SOURCE_PACKAGE_RESOURCE_TYPE_LINK: 6,
+        }[self.obj.target.resource_type_link]
+        return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
     def compose_pretty(self, shortlinks=True):
         """Compose a printable line of relevant information."""
