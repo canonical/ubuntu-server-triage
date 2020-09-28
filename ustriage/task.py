@@ -12,6 +12,10 @@ Joshua Powers <josh.powers@canonical.com>
 from functools import lru_cache
 
 
+DISTRIBUTION_RESOURCE_TYPE_LINK = (
+    'https://api.launchpad.net/devel/#distribution'
+)
+
 DISTRIBUTION_SOURCE_PACKAGE_RESOURCE_TYPE_LINK = (
     'https://api.launchpad.net/devel/#distribution_source_package'
 )
@@ -90,6 +94,7 @@ class Task:
         # This could be self.obj.bug.title but using self.title is
         # significantly faster
         start_field = {
+            DISTRIBUTION_RESOURCE_TYPE_LINK: 4,
             DISTRIBUTION_SOURCE_PACKAGE_RESOURCE_TYPE_LINK: 5,
             SOURCE_PACKAGE_RESOURCE_TYPE_LINK: 6,
         }[self.obj.target.resource_type_link]
