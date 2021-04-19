@@ -38,14 +38,16 @@ def test_auto_date_range_weekend(today, keyword):
 
 @pytest.mark.parametrize('start,end,expected', [
     ('2019-05-10', '2019-05-12', 'Monday triage'),
-    ('2019-05-13', '2019-05-13', 'Tuesday triage'),
     ('2019-05-06', '2019-05-06', 'Tuesday triage'),
     ('2019-05-07', '2019-05-07', 'Wednesday triage'),
+    ('2021-03-17', '2021-03-17', 'Thursday triage'),
+    ('2021-04-15', '2021-04-15', 'Friday triage'),
     ('2019-05-06', '2019-05-07', None),  # two days apart, not Fri-Sun
     ('2019-05-07', '2019-05-06', None),  # reverse range definition
     ('2019-05-06', '2019-05-09', None),  # more than two days apart
-    ('2019-05-18', '2019-05-18', None),  # Saturday
     ('2021-04-16', '2021-04-16', None),  # Friday
+    ('2019-05-18', '2019-05-18', None),  # Saturday
+    ('2021-04-18', '2021-04-18', None),  # Sunday
 ])
 def test_reverse_auto_date_range(start, end, expected):
     """Test reverse date range."""
