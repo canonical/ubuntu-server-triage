@@ -45,6 +45,7 @@ def test_auto_date_range_weekend(today, keyword):
     ('2019-05-07', '2019-05-06', None),  # reverse range definition
     ('2019-05-06', '2019-05-09', None),  # more than two days apart
     ('2019-05-18', '2019-05-18', None),  # Saturday
+    ('2021-04-16', '2021-04-16', None),  # Friday
 ])
 def test_reverse_auto_date_range(start, end, expected):
     """Test reverse date range."""
