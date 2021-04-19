@@ -193,7 +193,7 @@ def reverse_auto_date_range(start, end):
         return "Monday triage"
 
     if start == end:
-        if start_weekday in [5, 6]:
+        if start_weekday in [4, 5, 6]:
             return None  # weekend: process not specified
 
         # must be regular day triage
