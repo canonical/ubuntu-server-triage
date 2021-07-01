@@ -33,6 +33,7 @@ PACKAGE_BLACKLIST = {
     'lxc',
     'lxd',
     'maas',
+    'ubuntu-advantage-tools',
 }
 TEAMLPNAME = "ubuntu-server"
 
