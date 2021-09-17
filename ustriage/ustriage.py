@@ -458,7 +458,7 @@ def report_current_backlog(lpname):
 
 
 def print_tagged_bugs(lpname, expiration, date_range, open_browser,
-                      shortlinks, blacklist):
+                      shortlinks, blacklist, activitysubscribers):
     """Print bugs tagged with server-next.
 
     Print tagged bugs, optionally those that have not been
@@ -486,7 +486,7 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
     bugs = create_bug_list(
         expire_start,
         expire_end,
-        lpname, TEAMLPNAME, None,
+        lpname, TEAMLPNAME, activitysubscribers,
         tag=["server-next", "-bot-stop-nagging"],
         status=wanted_statuses
     )
@@ -534,18 +534,6 @@ def main(date_range=None, debug=False, open_browser=None,
     launchpad = connect_launchpad()
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
                         level=logging.DEBUG if debug else logging.INFO)
-
-    logging.info('Ubuntu Server Bug List')
-    logging.info('Please be patient, this can take a few minutes...')
-
-    if bug_scrub:
-        print_tagged_bugs(lpname, None, date_range, open_browser,
-                          shortlinks, blacklist)
-        print_backlog_bugs(lpname, None, date_range,
-                           open_browser, shortlinks, blacklist)
-        return
-
-    report_current_backlog(lpname)
     if activitysubscribernames:
         activitysubscribers = (
             launchpad.people[activitysubscribernames].members
@@ -553,6 +541,17 @@ def main(date_range=None, debug=False, open_browser=None,
     else:
         activitysubscribers = []
 
+    logging.info('Ubuntu Server Bug List')
+    logging.info('Please be patient, this can take a few minutes...')
+
+    if bug_scrub:
+        print_tagged_bugs(lpname, None, None, open_browser,
+                          shortlinks, blacklist, activitysubscribers)
+        print_backlog_bugs(lpname, None, None,
+                           open_browser, shortlinks, blacklist)
+        return
+
+    report_current_backlog(lpname)
     date_range['start'], date_range['end'] = parse_dates(date_range['start'],
                                                          date_range['end'])
 
@@ -591,7 +590,7 @@ def main(date_range=None, debug=False, open_browser=None,
 
     if expiration['show_expiration']:
         print_tagged_bugs(lpname, expiration, date_range, open_browser,
-                          shortlinks, blacklist)
+                          shortlinks, blacklist, activitysubscribers)
         print_backlog_bugs(lpname, expiration, date_range,
                            open_browser, shortlinks, blacklist)
 
