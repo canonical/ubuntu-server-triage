@@ -259,7 +259,8 @@ def parse_dates(start, end=None):
     return start, end
 
 
-def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None):
+def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
+               limit_backlog=None):
     """Print the tasks in a clean-ish format."""
     blacklist = blacklist or []
 
@@ -269,6 +270,19 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None):
     )
 
     logging.info('Found %s bugs', len(sorted_filtered_tasks))
+
+    if limit_backlog is not None and len(sorted_filtered_tasks) > limit_backlog:
+        logging.info('Displaying top & bottom %s', limit_backlog)
+        logging.info('# Recent tasks #')
+        print_bugs(sorted_filtered_tasks[:limit_backlog],
+                   open_in_browser, shortlinks, None, None)
+        logging.info('---------------------------------------------------')
+        logging.info('# Oldest tasks #')
+        # https://github.com/PyCQA/pylint/issues/1472
+        # pylint: disable=invalid-unary-operand-type
+        print_bugs(sorted_filtered_tasks[-limit_backlog:],
+                   open_in_browser, shortlinks, None, None)
+        return
 
     opened = False
     reportedbugs = []
@@ -495,7 +509,7 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
 
 
 def print_backlog_bugs(lpname, expiration, date_range, open_browser,
-                       shortlinks, blacklist):
+                       shortlinks, blacklist, limit_backlog):
     """Print bugs in the backlog that have not been touched in a while."""
     logging.info('')
     logging.info('---')
@@ -523,13 +537,13 @@ def print_backlog_bugs(lpname, expiration, date_range, open_browser,
         status=OPEN_BUG_STATUSES,
     )
     print_bugs(bugs, open_browser['exp'], shortlinks,
-               blacklist=blacklist)
+               blacklist=blacklist, limit_backlog=limit_backlog)
 
 
 def main(date_range=None, debug=False, open_browser=None,
          lpname=TEAMLPNAME, bugsubscriber=False, shortlinks=True,
          activitysubscribernames=None, expiration=None, bug_scrub=False,
-         blacklist=None):
+         limit_backlog=None, blacklist=None):
     """Connect to Launchpad, get range of bugs, print 'em."""
     launchpad = connect_launchpad()
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
@@ -541,14 +555,14 @@ def main(date_range=None, debug=False, open_browser=None,
     else:
         activitysubscribers = []
 
-    logging.info('Ubuntu Server Bug List')
+    logging.info('Ubuntu Server Triage helper')
     logging.info('Please be patient, this can take a few minutes...')
 
     if bug_scrub:
         print_tagged_bugs(lpname, None, None, open_browser,
                           shortlinks, blacklist, activitysubscribers)
         print_backlog_bugs(lpname, None, None,
-                           open_browser, shortlinks, blacklist)
+                           open_browser, shortlinks, blacklist, limit_backlog)
         return
 
     report_current_backlog(lpname)
@@ -592,7 +606,7 @@ def main(date_range=None, debug=False, open_browser=None,
         print_tagged_bugs(lpname, expiration, date_range, open_browser,
                           shortlinks, blacklist, activitysubscribers)
         print_backlog_bugs(lpname, expiration, date_range,
-                           open_browser, shortlinks, blacklist)
+                           open_browser, shortlinks, blacklist, None)
 
 
 def launch():
@@ -637,11 +651,13 @@ def launch():
                         help='Do not report about expiration of bugs')
     parser.add_argument('--expire-next',
                         default=60,
+                        type=int,
                         dest='expire_next',
                         help='Days to consider bugs that should be handled'
                         ' next expired')
     parser.add_argument('--expire',
                         default=180,
+                        type=int,
                         dest='expire',
                         help='Days to consider bugs expired')
     parser.add_argument('--tag-next',
@@ -653,8 +669,13 @@ def launch():
                         action='store_true',
                         dest='bug_scrub',
                         help='Display current server-next and '
-                             'server-subscribed bugs (all Date/Expiration '
-                             ' options are ignored)')
+                             'server-subscribed bugs (all Date/Expiration ')
+    parser.add_argument('--limit-backlog',
+                        default=20,
+                        type=int,
+                        dest='limit_backlog',
+                        help='Limits the bug-scrub backlog report to the top '
+                             'and bottom number of tasks')
 
     args = parser.parse_args()
 
@@ -669,7 +690,8 @@ def launch():
 
     main(date_range, args.debug, open_browser,
          args.lpname, args.bugsubscriber, not args.fullurls,
-         args.activitysubscribers, expiration, args.bug_scrub,
+         args.activitysubscribers, expiration,
+         args.bug_scrub, args.limit_backlog,
          blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST)
 
 
