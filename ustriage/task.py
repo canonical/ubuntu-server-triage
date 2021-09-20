@@ -173,3 +173,7 @@ class Task:
     def sort_key(self):
         """Sort method."""
         return (not self.last_activity_ours, self.number, self.src)
+
+    def sort_date(self):
+        """Sort by date."""
+        return self.date_last_updated

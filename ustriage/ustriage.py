@@ -260,28 +260,35 @@ def parse_dates(start, end=None):
 
 
 def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
-               limit_backlog=None):
+               limit_backlog=None, oder_by_date=False, is_sorted=False):
     """Print the tasks in a clean-ish format."""
     blacklist = blacklist or []
 
-    sorted_filtered_tasks = sorted(
-        (t for t in tasks if t.src not in blacklist),
-        key=Task.sort_key,
-    )
+    if is_sorted:
+        sorted_filtered_tasks = tasks
+    else:
+        sorted_filtered_tasks = sorted(
+            (t for t in tasks if t.src not in blacklist),
+            key=(Task.sort_date if oder_by_date else Task.sort_key),
+            reverse=oder_by_date
+        )
 
     logging.info('Found %s bugs', len(sorted_filtered_tasks))
 
-    if limit_backlog is not None and len(sorted_filtered_tasks) > limit_backlog:
+    if (limit_backlog is not None and
+            len(sorted_filtered_tasks) > limit_backlog):
         logging.info('Displaying top & bottom %s', limit_backlog)
         logging.info('# Recent tasks #')
         print_bugs(sorted_filtered_tasks[:limit_backlog],
-                   open_in_browser, shortlinks, None, None)
+                   open_in_browser, shortlinks, limit_backlog=None,
+                   oder_by_date=False, is_sorted=True)
         logging.info('---------------------------------------------------')
         logging.info('# Oldest tasks #')
         # https://github.com/PyCQA/pylint/issues/1472
         # pylint: disable=invalid-unary-operand-type
         print_bugs(sorted_filtered_tasks[-limit_backlog:],
-                   open_in_browser, shortlinks, None, None)
+                   open_in_browser, shortlinks, limit_backlog=None,
+                   oder_by_date=False, is_sorted=True)
         return
 
     opened = False
@@ -543,7 +550,8 @@ def print_backlog_bugs(lpname, expiration, date_range, open_browser,
         status=OPEN_BUG_STATUSES,
     )
     print_bugs(bugs, open_browser['exp'], shortlinks,
-               blacklist=blacklist, limit_backlog=limit_backlog)
+               blacklist=blacklist, limit_backlog=limit_backlog,
+               oder_by_date=True)
 
 
 def main(date_range=None, debug=False, open_browser=None,
