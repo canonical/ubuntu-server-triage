@@ -25,7 +25,7 @@ apps:
 parts:
     ustriage:
         plugin: python
-        source: https://github.com/powersj/ubuntu-server-triage
+        source: https://github.com/canonical/ubuntu-server-triage
         source-type: git
         stage-packages:
             - python3-dateutil
