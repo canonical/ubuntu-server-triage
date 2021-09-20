@@ -1,0 +1,16 @@
+name: Continuous Integration
+
+on: [push, pull_request]
+
+jobs:
+  tox:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get -qy update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -qy install tox
+      - name: Git checkout
+        uses: actions/checkout@v2
+      - name: Run tox
+        run: tox
