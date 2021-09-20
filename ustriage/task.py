@@ -122,7 +122,7 @@ class Task:
             '+' if self.last_activity_ours else '',
         )
 
-        return u'%s - %-16s %-16s - %s' % (
+        return '%s - %-16s %-16s - %s' % (
             bug_url,
             ('%s(%s)' % (flags, self.status)),
             ('[%s]' % self.src), self.short_title
@@ -142,7 +142,7 @@ class Task:
             '+' if self.last_activity_ours else '',
         )
 
-        return u'%s - %-16s %-16s - %s' % (
+        return '%s - %-16s %-16s - %s' % (
             dupprefix,
             ('%s(%s)' % (flags, self.status)),
             ('[%s]' % self.src), self.short_title
