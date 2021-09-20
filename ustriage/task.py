@@ -69,6 +69,12 @@ class Task:
 
     @property
     @lru_cache()
+    def date_last_updated(self):
+        """Last update as datetime returned by launchpad."""
+        return self.obj.bug.date_last_updated
+
+    @property
+    @lru_cache()
     def src(self):
         """Source package."""
         # This could be self.target.name but using self.title is
@@ -133,9 +139,10 @@ class Task:
             '+' if self.last_activity_ours else '',
         )
 
-        return '%s - %-16s %-18s %-15s - %s' % (
+        return '%s - %-16s %8s %-18s %-15s - %s' % (
             bug_url,
             ('%s(%s)' % (flags, self.status)),
+            self.date_last_updated.strftime('%d.%m.%y'),
             ('[%s]' % self.src),
             ('' if not self.assignee else '=> %s' % self.assignee),
             self.short_title,
@@ -155,9 +162,10 @@ class Task:
             '+' if self.last_activity_ours else '',
         )
 
-        return '%s - %-16s %-18s %-15s' % (
+        return '%s - %-16s %8s %-18s %-15s' % (
             dupprefix,
             ('%s(%s)' % (flags, self.status)),
+            "",
             ('[%s]' % self.src),
             ('' if not self.assignee else '=> %s' % self.assignee)
         )
