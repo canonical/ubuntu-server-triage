@@ -271,8 +271,8 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None):
         if task.number in reportedbugs:
             print(task.compose_dup(shortlinks=shortlinks))
             continue
-        else:
-            print(task.compose_pretty(shortlinks=shortlinks))
+
+        print(task.compose_pretty(shortlinks=shortlinks))
 
         if open_in_browser:
             if opened:
