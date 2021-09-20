@@ -139,12 +139,12 @@ class Task:
             '+' if self.last_activity_ours else '',
         )
 
-        return '%s - %-16s %8s %-18s %-15s - %s' % (
+        return '%s - %-16s %8s %-16s %-13s - %s' % (
             bug_url,
             ('%s(%s)' % (flags, self.status)),
             self.date_last_updated.strftime('%d.%m.%y'),
-            ('[%s]' % self.src),
-            ('' if not self.assignee else '=> %s' % self.assignee),
+            ('[%s]' % self.src[0:13]),
+            ('' if not self.assignee else '=> %s' % self.assignee[0:9]),
             self.short_title,
         )
 
@@ -162,12 +162,12 @@ class Task:
             '+' if self.last_activity_ours else '',
         )
 
-        return '%s - %-16s %8s %-18s %-15s' % (
+        return '%s - %-16s %8s %-16s %-13s' % (
             dupprefix,
             ('%s(%s)' % (flags, self.status)),
             "",
-            ('[%s]' % self.src),
-            ('' if not self.assignee else '=> %s' % self.assignee)
+            ('[%s]' % self.src[0:13]),
+            ('' if not self.assignee else '=> %s' % self.assignee[0:9])
         )
 
     def sort_key(self):
