@@ -318,16 +318,22 @@ def last_activity_ours(task, activitysubscribers):
 
     activitysubscribers_links = {p.self_link for p in activitysubscribers}
 
-    # activity_list contains a tuple of (date, person.self_link) pairs
-    unsorted_list = []
-    for msg in task.bug.messages:
+    # 1. activity_list shall contain a tuple of (date, person.self_link) pairs
+    # 2. messages collection is ordered and the last few elements are enough
+    # This avoid too many API round trips to launchpad. With 0.1-0.5 seconds
+    # per round trip and some overhead that is ~1.7s per bug now compared to
+    # the former rather excessive times on bugs with many comments
+    # Note: negative like [-3:] slices are not allowed here
+    activity_list = []
+    last_msgs_end = len(task.bug.messages)
+    last_msgs_start = 0 if last_msgs_end < 3 else last_msgs_end-3
+    for msg in task.bug.messages[last_msgs_start:last_msgs_end]:
         try:
-            unsorted_list.append((msg.date_created, msg.owner.self_link))
+            activity_list.append((msg.date_created, msg.owner.self_link))
         except ClientError as exc:
             if exc.response["status"] == "410":  # gone, user suspended
                 continue
             raise
-    activity_list = sorted(unsorted_list, key=lambda a: a[0])
 
     most_recent_activity = activity_list.pop()
 
