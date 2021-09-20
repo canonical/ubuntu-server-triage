@@ -83,6 +83,17 @@ class Task:
 
     @property
     @lru_cache()
+    def assignee(self):
+        """Assignee as string returned by launchpadlib."""
+        # String like https://api.launchpad.net/devel/~ahasenack
+        # getting OBJ via API to determine the name is much slower, the
+        # username is enough and faster
+        if self.obj.assignee_link:
+            return self.obj.assignee_link.split('~')[1]
+        return False
+
+    @property
+    @lru_cache()
     def status(self):
         """Status as returned by launchpadlib."""
         return self.obj.status
@@ -122,10 +133,12 @@ class Task:
             '+' if self.last_activity_ours else '',
         )
 
-        return '%s - %-16s %-16s - %s' % (
+        return '%s - %-16s %-18s %-15s - %s' % (
             bug_url,
             ('%s(%s)' % (flags, self.status)),
-            ('[%s]' % self.src), self.short_title
+            ('[%s]' % self.src),
+            ('' if not self.assignee else '=> %s' % self.assignee),
+            self.short_title,
         )
 
     def compose_dup(self, shortlinks=True):
@@ -142,10 +155,11 @@ class Task:
             '+' if self.last_activity_ours else '',
         )
 
-        return '%s - %-16s %-16s - %s' % (
+        return '%s - %-16s %-18s %-15s' % (
             dupprefix,
             ('%s(%s)' % (flags, self.status)),
-            ('[%s]' % self.src), self.short_title
+            ('[%s]' % self.src),
+            ('' if not self.assignee else '=> %s' % self.assignee)
         )
 
     def sort_key(self):
