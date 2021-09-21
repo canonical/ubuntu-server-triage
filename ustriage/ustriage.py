@@ -428,7 +428,6 @@ def create_bug_list(
             if link not in bugs_since_end
         }
     else:
-        # in bug-scrub we want all, even those already subscribed
         already_sub_since_start = {}
         if bugsubscriber:
             # direct subscriber
@@ -556,7 +555,8 @@ def print_backlog_bugs(lpname, expiration, date_range, open_browser,
 
 def main(date_range=None, debug=False, open_browser=None,
          lpname=TEAMLPNAME, bugsubscriber=False, shortlinks=True,
-         activitysubscribernames=None, expiration=None, bug_scrub=False,
+         activitysubscribernames=None, expiration=None,
+         show_no_triage=False, show_tagged=False, show_backlog=False,
          limit_backlog=None, blacklist=None):
     """Connect to Launchpad, get range of bugs, print 'em."""
     launchpad = connect_launchpad()
@@ -572,11 +572,15 @@ def main(date_range=None, debug=False, open_browser=None,
     logging.info('Ubuntu Server Triage helper')
     logging.info('Please be patient, this can take a few minutes...')
 
-    if bug_scrub:
+    if show_tagged:
         print_tagged_bugs(lpname, None, None, open_browser,
                           shortlinks, blacklist, activitysubscribers)
+
+    if show_backlog:
         print_backlog_bugs(lpname, None, None,
                            open_browser, shortlinks, blacklist, limit_backlog)
+
+    if show_no_triage:
         return
 
     report_current_backlog(lpname)
@@ -678,12 +682,23 @@ def launch():
                         default='server-next',
                         dest='tag_next',
                         help='Tag that marks bugs to be handled soon')
-    parser.add_argument('-B', '--bug-scrub',
+    parser.add_argument('-T', '--show-tagged',
                         default=False,
                         action='store_true',
-                        dest='bug_scrub',
-                        help='Display current server-next and '
-                             'server-subscribed bugs (all Date/Expiration ')
+                        dest='show_tagged',
+                        help='Display (--tag-next or default) tagged bugs ')
+    parser.add_argument('-B', '--show-backlog',
+                        default=False,
+                        action='store_true',
+                        dest='show_backlog',
+                        help='Display backlog of all (--lpname or default)'
+                             ' subscribed bugs')
+    parser.add_argument('-N', '--show-no-triage',
+                        default=False,
+                        action='store_true',
+                        dest='show_no_triage',
+                        help='Do not Display the default triage content'
+                             ' (recent and expiring bugs).')
     parser.add_argument('--limit-backlog',
                         default=20,
                         type=int,
@@ -704,8 +719,8 @@ def launch():
 
     main(date_range, args.debug, open_browser,
          args.lpname, args.bugsubscriber, not args.fullurls,
-         args.activitysubscribers, expiration,
-         args.bug_scrub, args.limit_backlog,
+         args.activitysubscribers, expiration, args.show_no_triage,
+         args.show_tagged, args.show_backlog, args.limit_backlog,
          blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST)
 
 
