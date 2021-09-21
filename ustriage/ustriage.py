@@ -260,7 +260,7 @@ def parse_dates(start, end=None):
 
 
 def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
-               limit_backlog=None, oder_by_date=False, is_sorted=False):
+               limit_subscribed=None, oder_by_date=False, is_sorted=False):
     """Print the tasks in a clean-ish format."""
     blacklist = blacklist or []
 
@@ -275,19 +275,19 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
 
     logging.info('Found %s bugs', len(sorted_filtered_tasks))
 
-    if (limit_backlog is not None and
-            len(sorted_filtered_tasks) > limit_backlog):
-        logging.info('Displaying top & bottom %s', limit_backlog)
+    if (limit_subscribed is not None and
+            len(sorted_filtered_tasks) > limit_subscribed):
+        logging.info('Displaying top & bottom %s', limit_subscribed)
         logging.info('# Recent tasks #')
-        print_bugs(sorted_filtered_tasks[:limit_backlog],
-                   open_in_browser, shortlinks, limit_backlog=None,
+        print_bugs(sorted_filtered_tasks[:limit_subscribed],
+                   open_in_browser, shortlinks, limit_subscribed=None,
                    oder_by_date=False, is_sorted=True)
         logging.info('---------------------------------------------------')
         logging.info('# Oldest tasks #')
         # https://github.com/PyCQA/pylint/issues/1472
         # pylint: disable=invalid-unary-operand-type
-        print_bugs(sorted_filtered_tasks[-limit_backlog:],
-                   open_in_browser, shortlinks, limit_backlog=None,
+        print_bugs(sorted_filtered_tasks[-limit_subscribed:],
+                   open_in_browser, shortlinks, limit_subscribed=None,
                    oder_by_date=False, is_sorted=True)
         return
 
@@ -520,19 +520,19 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
                blacklist=blacklist)
 
 
-def print_backlog_bugs(lpname, expiration, date_range, open_browser,
-                       shortlinks, blacklist, limit_backlog):
-    """Print bugs in the backlog that have not been touched in a while."""
+def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
+                          shortlinks, blacklist, limit_subscribed):
+    """Print subscribed bugs - optionalla those not touched in a while."""
     logging.info('')
     logging.info('---')
     if expiration is None:
-        logging.info('Bugs in backlog')
+        logging.info('Bugs subscribed to %s', lpname)
         expire_start = None
         expire_end = None
         tag = ["-bot-stop-nagging", "-server-next"]
     else:
-        logging.info('Bugs in backlog and not touched in %s days',
-                     expiration['expire'])
+        logging.info('Bugs subscribed to %s and not touched in %s days',
+                     lpname, expiration['expire'])
         expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
                         - timedelta(days=expiration['expire']))
         expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
@@ -549,15 +549,15 @@ def print_backlog_bugs(lpname, expiration, date_range, open_browser,
         status=OPEN_BUG_STATUSES,
     )
     print_bugs(bugs, open_browser['exp'], shortlinks,
-               blacklist=blacklist, limit_backlog=limit_backlog,
+               blacklist=blacklist, limit_subscribed=limit_subscribed,
                oder_by_date=True)
 
 
 def main(date_range=None, debug=False, open_browser=None,
          lpname=TEAMLPNAME, bugsubscriber=False, shortlinks=True,
          activitysubscribernames=None, expiration=None,
-         show_no_triage=False, show_tagged=False, show_backlog=False,
-         limit_backlog=None, blacklist=None):
+         show_no_triage=False, show_tagged=False, show_subscribed=False,
+         limit_subscribed=None, blacklist=None):
     """Connect to Launchpad, get range of bugs, print 'em."""
     launchpad = connect_launchpad()
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
@@ -576,9 +576,10 @@ def main(date_range=None, debug=False, open_browser=None,
         print_tagged_bugs(lpname, None, None, open_browser,
                           shortlinks, blacklist, activitysubscribers)
 
-    if show_backlog:
-        print_backlog_bugs(lpname, None, None,
-                           open_browser, shortlinks, blacklist, limit_backlog)
+    if show_subscribed:
+        print_subscribed_bugs(lpname, None, None,
+                              open_browser, shortlinks,
+                              blacklist, limit_subscribed)
 
     if show_no_triage:
         return
@@ -623,8 +624,8 @@ def main(date_range=None, debug=False, open_browser=None,
     if expiration['show_expiration']:
         print_tagged_bugs(lpname, expiration, date_range, open_browser,
                           shortlinks, blacklist, activitysubscribers)
-        print_backlog_bugs(lpname, expiration, date_range,
-                           open_browser, shortlinks, blacklist, None)
+        print_subscribed_bugs(lpname, expiration, date_range,
+                              open_browser, shortlinks, blacklist, None)
 
 
 def launch():
@@ -687,11 +688,11 @@ def launch():
                         action='store_true',
                         dest='show_tagged',
                         help='Display (--tag-next or default) tagged bugs ')
-    parser.add_argument('-B', '--show-backlog',
+    parser.add_argument('-B', '--show-subscribed',
                         default=False,
                         action='store_true',
-                        dest='show_backlog',
-                        help='Display backlog of all (--lpname or default)'
+                        dest='show_subscribed',
+                        help='Display all (--lpname or default)'
                              ' subscribed bugs')
     parser.add_argument('-N', '--show-no-triage',
                         default=False,
@@ -699,11 +700,11 @@ def launch():
                         dest='show_no_triage',
                         help='Do not Display the default triage content'
                              ' (recent and expiring bugs).')
-    parser.add_argument('--limit-backlog',
+    parser.add_argument('--limit-subscribed',
                         default=20,
                         type=int,
-                        dest='limit_backlog',
-                        help='Limits the bug-scrub backlog report to the top '
+                        dest='limit_subscribed',
+                        help='Limits the report of subscribed bugs to the top '
                              'and bottom number of tasks')
 
     args = parser.parse_args()
@@ -720,7 +721,7 @@ def launch():
     main(date_range, args.debug, open_browser,
          args.lpname, args.bugsubscriber, not args.fullurls,
          args.activitysubscribers, expiration, args.show_no_triage,
-         args.show_tagged, args.show_backlog, args.limit_backlog,
+         args.show_tagged, args.show_subscribed, args.limit_subscribed,
          blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST)
 
 
