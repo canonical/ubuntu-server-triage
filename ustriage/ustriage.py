@@ -701,7 +701,7 @@ def launch():
                         help='Do not Display the default triage content'
                              ' (recent and expiring bugs).')
     parser.add_argument('--limit-subscribed',
-                        default=20,
+                        default=None,
                         type=int,
                         dest='limit_subscribed',
                         help='Limits the report of subscribed bugs to the top '
