@@ -37,6 +37,7 @@ PACKAGE_BLACKLIST = {
     'ubuntu-advantage-tools',
 }
 TEAMLPNAME = "ubuntu-server"
+DEFAULTTAG = "server-next"
 
 POSSIBLE_BUG_STATUSES = [
     "New",
@@ -484,8 +485,8 @@ def report_current_backlog(lpname):
 
 
 def print_tagged_bugs(lpname, expiration, date_range, open_browser,
-                      shortlinks, blacklist, activitysubscribers):
-    """Print bugs tagged with server-next.
+                      shortlinks, blacklist, activitysubscribers, tag):
+    """Print tagged bugs.
 
     Print tagged bugs, optionally those that have not been
     touched in a while.
@@ -494,13 +495,14 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
     logging.info('---')
 
     if expiration is None:
-        logging.info('Bugs tagged "server-next"')
+        logging.info('Bugs tagged "%s" and subscribed "%s"', tag, lpname)
         expire_start = None
         expire_end = None
         wanted_statuses = TRACKED_BUG_STATUSES
     else:
-        logging.info('Bugs tagged "server-next" and not touched in %s days',
-                     expiration['expire_next'])
+        logging.info('Bugs tagged "%s" and subscribed "%s" and not touched'
+                     ' in %s days',
+                     tag, lpname, expiration['expire_next'])
         expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
                         - timedelta(days=expiration['expire_next']))
         expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
@@ -513,7 +515,7 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
         expire_start,
         expire_end,
         lpname, TEAMLPNAME, activitysubscribers,
-        tag=["server-next", "-bot-stop-nagging"],
+        tag=[tag, "-bot-stop-nagging"],
         status=wanted_statuses
     )
     print_bugs(bugs, open_browser['exp'], shortlinks,
@@ -557,7 +559,7 @@ def main(date_range=None, debug=False, open_browser=None,
          lpname=TEAMLPNAME, bugsubscriber=False, shortlinks=True,
          activitysubscribernames=None, expiration=None,
          show_no_triage=False, show_tagged=False, show_subscribed=False,
-         limit_subscribed=None, blacklist=None):
+         limit_subscribed=None, blacklist=None, tag="server-next"):
     """Connect to Launchpad, get range of bugs, print 'em."""
     launchpad = connect_launchpad()
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
@@ -574,7 +576,7 @@ def main(date_range=None, debug=False, open_browser=None,
 
     if show_tagged:
         print_tagged_bugs(lpname, None, None, open_browser,
-                          shortlinks, blacklist, activitysubscribers)
+                          shortlinks, blacklist, activitysubscribers, tag)
 
     if show_subscribed:
         print_subscribed_bugs(lpname, None, None,
@@ -623,7 +625,7 @@ def main(date_range=None, debug=False, open_browser=None,
 
     if expiration['show_expiration']:
         print_tagged_bugs(lpname, expiration, date_range, open_browser,
-                          shortlinks, blacklist, activitysubscribers)
+                          shortlinks, blacklist, activitysubscribers, tag)
         print_subscribed_bugs(lpname, expiration, date_range,
                               open_browser, shortlinks, blacklist, None)
 
@@ -647,7 +649,8 @@ def launch():
                         dest='openexp',
                         help='open expiring bugs in web browser')
     parser.add_argument('-n', '--lpname', default=TEAMLPNAME,
-                        help='specify the launchpad name to search for')
+                        help='specify the launchpad name to search for'
+                             ' (default "%s")' % TEAMLPNAME)
     parser.add_argument('-b', '--bugsubscriber', action='store_true',
                         help=('filter name as bug subscriber (default would '
                               'be structural subscriber'))
@@ -679,21 +682,22 @@ def launch():
                         type=int,
                         dest='expire',
                         help='Days to consider bugs expired')
-    parser.add_argument('--tag-next',
+    parser.add_argument('--tag',
                         default='server-next',
-                        dest='tag_next',
-                        help='Tag that marks bugs to be handled soon')
+                        dest='tag',
+                        help='Tag that marks bugs (default "%s")' % DEFAULTTAG)
     parser.add_argument('-T', '--show-tagged',
                         default=False,
                         action='store_true',
                         dest='show_tagged',
-                        help='Display (--tag-next or default) tagged bugs ')
+                        help='Display (--lpname or "%s") bug that are tagged'
+                             ' by (--tag or "%s")' % (TEAMLPNAME, DEFAULTTAG))
     parser.add_argument('-B', '--show-subscribed',
                         default=False,
                         action='store_true',
                         dest='show_subscribed',
-                        help='Display all (--lpname or default)'
-                             ' subscribed bugs')
+                        help='Display all (--lpname or "%s") subscribed'
+                             ' bugs' % TEAMLPNAME)
     parser.add_argument('-N', '--show-no-triage',
                         default=False,
                         action='store_true',
@@ -713,7 +717,6 @@ def launch():
                     'exp': args.openexp}
     expiration = {'expire_next': args.expire_next,
                   'expire': args.expire,
-                  'tag_next': args.tag_next,
                   'show_expiration': args.show_expiration}
     date_range = {'start': args.start_date,
                   'end': args.end_date}
@@ -722,7 +725,8 @@ def launch():
          args.lpname, args.bugsubscriber, not args.fullurls,
          args.activitysubscribers, expiration, args.show_no_triage,
          args.show_tagged, args.show_subscribed, args.limit_subscribed,
-         blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST)
+         blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
+         tag=args.tag)
 
 
 if __name__ == '__main__':
