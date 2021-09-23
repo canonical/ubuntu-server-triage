@@ -502,11 +502,11 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
     else:
         logging.info('Bugs tagged "%s" and subscribed "%s" and not touched'
                      ' in %s days',
-                     tag, lpname, expiration['expire_next'])
+                     tag, lpname, expiration['expire_tagged'])
         expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
-                        - timedelta(days=expiration['expire_next']))
+                        - timedelta(days=expiration['expire_tagged']))
         expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
-                      - timedelta(days=expiration['expire_next']))
+                      - timedelta(days=expiration['expire_tagged']))
         expire_start = expire_start.strftime('%Y-%m-%d')
         expire_end = expire_end.strftime('%Y-%m-%d')
         wanted_statuses = OPEN_BUG_STATUSES
@@ -671,22 +671,26 @@ def launch():
                         default=True,
                         action='store_false',
                         dest='show_expiration',
-                        help='Do not report about expiration of bugs')
-    parser.add_argument('--expire-next',
+                        help='Do not report about expiration of tagged and'
+                             ' subscribed bugs')
+    parser.add_argument('--expire-tagged',
                         default=60,
                         type=int,
-                        dest='expire_next',
-                        help='Days to consider bugs that should be handled'
-                        ' next expired')
+                        dest='expire_tagged',
+                        help='Days to consider tagged bugs expired if no'
+                             ' update happened')
     parser.add_argument('--expire',
                         default=180,
                         type=int,
                         dest='expire',
-                        help='Days to consider bugs expired')
+                        help='Days to consider subscribed bugs expired if no'
+                             ' update happened')
     parser.add_argument('--tag',
                         default='server-next',
                         dest='tag',
-                        help='Tag that marks bugs (default "%s")' % DEFAULTTAG)
+                        help='Tag that marks bugs (default "%s"). This will be'
+                             ' used for tag-expiry as well as --show-tagged'
+                             ' selection.' % DEFAULTTAG)
     parser.add_argument('-T', '--show-tagged',
                         default=False,
                         action='store_true',
@@ -716,7 +720,7 @@ def launch():
 
     open_browser = {'triage': args.open,
                     'exp': args.openexp}
-    expiration = {'expire_next': args.expire_next,
+    expiration = {'expire_tagged': args.expire_tagged,
                   'expire': args.expire,
                   'show_expiration': args.show_expiration}
     date_range = {'start': args.start_date,
