@@ -25,6 +25,15 @@ SOURCE_PACKAGE_RESOURCE_TYPE_LINK = (
 )
 
 
+def truncate_string(text, length=20):
+    """Truncate string and hint visually if truncated."""
+    str_text = str(text)
+    truncated = str_text[0:length]
+    if len(str_text) > length:
+        truncated = truncated[:-1] + '…'
+    return truncated
+
+
 class Task:
     """Our representation of a Launchpad task."""
 
@@ -142,15 +151,15 @@ class Task:
         text = '%s - %-16s %-16s' % (
             bug_url,
             ('%s(%s)' % (flags, self.status)),
-            ('[%s]' % self.src[0:13])
+            ('[%s]' % truncate_string(self.src, 13))
         )
         if extended:
             text += ' %8s %-13s' % (
                 self.date_last_updated.strftime('%d.%m.%y'),
                 ('' if not self.assignee
-                 else '=> %s' % self.assignee[0:9]),
+                 else '=> %s' % truncate_string(self.assignee, 9))
             )
-        text += ' - %s' % self.short_title[0:60]
+        text += ' - %s' % truncate_string(self.short_title, 60)
         return text
 
     def compose_dup(self, shortlinks=True, extended=False):
@@ -170,13 +179,13 @@ class Task:
         text = '%s - %-16s %-16s' % (
             dupprefix,
             ('%s(%s)' % (flags, self.status)),
-            ('[%s]' % self.src[0:13])
+            ('[%s]' % truncate_string(self.src, 13))
         )
         if extended:
             text += ' %8s %-13s' % (
                 "",
                 ('' if not self.assignee
-                 else '=> %s' % self.assignee[0:9]),
+                 else '=> %s' % truncate_string(self.assignee, 9))
             )
         return text
 
