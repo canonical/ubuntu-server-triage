@@ -703,7 +703,7 @@ def launch():
                         action='store_true',
                         dest='show_tagged',
                         help='Display an additional list of bugs that'
-                             ' --lpname or "%s") is directly subscribed to'
+                             ' (--lpname or "%s") is directly subscribed to'
                              ' and are tagged by (--tag or "%s")'
                              % (TEAMLPNAME, DEFAULTTAG))
     parser.add_argument('-B', '--show-subscribed',
