@@ -654,7 +654,7 @@ def launch():
                              ' (default "%s")' % TEAMLPNAME)
     parser.add_argument('-b', '--bugsubscriber', action='store_true',
                         help=('filter name as bug subscriber (default would '
-                              'be structural subscriber'))
+                              'be structural subscriber)'))
     parser.add_argument('--fullurls', default=False, action='store_true',
                         help='show full URLs instead of shortcuts')
     parser.add_argument('--activitysubscribers',
