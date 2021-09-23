@@ -25,6 +25,15 @@ SOURCE_PACKAGE_RESOURCE_TYPE_LINK = (
 )
 
 
+def truncate_string(text, length=20):
+    """Truncate string and hint visually if truncated."""
+    str_text = str(text)
+    truncated = str_text[0:length]
+    if len(str_text) > length:
+        truncated = truncated[:-1] + '…'
+    return truncated
+
+
 class Task:
     """Our representation of a Launchpad task."""
 
@@ -69,6 +78,18 @@ class Task:
 
     @property
     @lru_cache()
+    def date_last_updated(self):
+        """Last update as datetime returned by launchpad."""
+        return self.obj.bug.date_last_updated
+
+    @property
+    @lru_cache()
+    def importance(self):
+        """Return importance as returned by launchpad."""
+        return self.obj.importance
+
+    @property
+    @lru_cache()
     def src(self):
         """Source package."""
         # This could be self.target.name but using self.title is
@@ -80,6 +101,17 @@ class Task:
     def title(self):
         """Title as returned by launchpadlib."""
         return self.obj.title
+
+    @property
+    @lru_cache()
+    def assignee(self):
+        """Assignee as string returned by launchpadlib."""
+        # String like https://api.launchpad.net/devel/~ahasenack
+        # getting OBJ via API to determine the name is much slower, the
+        # username is enough and faster
+        if self.obj.assignee_link:
+            return self.obj.assignee_link.split('~')[1]
+        return False
 
     @property
     @lru_cache()
@@ -100,7 +132,7 @@ class Task:
         }[self.obj.target.resource_type_link]
         return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
-    def compose_pretty(self, shortlinks=True):
+    def compose_pretty(self, shortlinks=True, extended=False):
         """Compose a printable line of relevant information."""
         if shortlinks:
             format_string = (
@@ -122,13 +154,22 @@ class Task:
             '+' if self.last_activity_ours else '',
         )
 
-        return '%s - %-16s %-16s - %s' % (
+        text = '%s - %-16s %-19s' % (
             bug_url,
             ('%s(%s)' % (flags, self.status)),
-            ('[%s]' % self.src), self.short_title
+            ('[%s]' % truncate_string(self.src, 16))
         )
+        if extended:
+            text += ' %8s %-10s %-13s' % (
+                self.date_last_updated.strftime('%d.%m.%y'),
+                self.importance,
+                ('' if not self.assignee
+                 else '=> %s' % truncate_string(self.assignee, 9))
+            )
+        text += ' - %s' % truncate_string(self.short_title, 60)
+        return text
 
-    def compose_dup(self, shortlinks=True):
+    def compose_dup(self, shortlinks=True, extended=False):
         """Compose a printable line of reduced information for a dup."""
         if shortlinks:
             duplen = str(self.BUG_NUMBER_LENGTH + len(self.SHORTLINK_ROOT))
@@ -142,12 +183,24 @@ class Task:
             '+' if self.last_activity_ours else '',
         )
 
-        return '%s - %-16s %-16s - %s' % (
+        text = '%s - %-16s %-19s' % (
             dupprefix,
             ('%s(%s)' % (flags, self.status)),
-            ('[%s]' % self.src), self.short_title
+            ('[%s]' % truncate_string(self.src, 16))
         )
+        if extended:
+            text += ' %8s %-10s %-13s' % (
+                "",
+                self.importance,
+                ('' if not self.assignee
+                 else '=> %s' % truncate_string(self.assignee, 9))
+            )
+        return text
 
     def sort_key(self):
         """Sort method."""
         return (not self.last_activity_ours, self.number, self.src)
+
+    def sort_date(self):
+        """Sort by date."""
+        return self.date_last_updated

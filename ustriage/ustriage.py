@@ -4,8 +4,9 @@ Output Ubuntu Server Launchpad bugs that for triage.
 
 Script accepts either a single date or inclusive range to find bugs.
 
-Copyright 2017-2018 Canonical Ltd.
+Copyright 2017-2021 Canonical Ltd.
 Joshua Powers <josh.powers@canonical.com>
+Christian Ehrhardt <christian.ehrhardt@canonical.com>
 """
 import argparse
 from datetime import date, datetime, timedelta
@@ -36,6 +37,7 @@ PACKAGE_BLACKLIST = {
     'ubuntu-advantage-tools',
 }
 TEAMLPNAME = "ubuntu-server"
+DEFAULTTAG = "server-next"
 
 POSSIBLE_BUG_STATUSES = [
     "New",
@@ -57,6 +59,10 @@ OPEN_BUG_STATUSES = [
     "Triaged",
     "In Progress",
     "Fix Committed",
+]
+
+TRACKED_BUG_STATUSES = OPEN_BUG_STATUSES + [
+    "Incomplete",
 ]
 
 DISTRIBUTION_RESOURCE_TYPE_LINK = (
@@ -254,25 +260,47 @@ def parse_dates(start, end=None):
     return start, end
 
 
-def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None):
+def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
+               limit_subscribed=None, oder_by_date=False, is_sorted=False,
+               extended=False):
     """Print the tasks in a clean-ish format."""
     blacklist = blacklist or []
 
-    sorted_filtered_tasks = sorted(
-        (t for t in tasks if t.src not in blacklist),
-        key=Task.sort_key,
-    )
+    if is_sorted:
+        sorted_filtered_tasks = tasks
+    else:
+        sorted_filtered_tasks = sorted(
+            (t for t in tasks if t.src not in blacklist),
+            key=(Task.sort_date if oder_by_date else Task.sort_key),
+            reverse=oder_by_date
+        )
 
     logging.info('Found %s bugs', len(sorted_filtered_tasks))
+
+    if (limit_subscribed is not None and
+            len(sorted_filtered_tasks) > limit_subscribed):
+        logging.info('Displaying top & bottom %s', limit_subscribed)
+        logging.info('# Recent tasks #')
+        print_bugs(sorted_filtered_tasks[:limit_subscribed],
+                   open_in_browser, shortlinks, limit_subscribed=None,
+                   oder_by_date=False, is_sorted=True, extended=extended)
+        logging.info('---------------------------------------------------')
+        logging.info('# Oldest tasks #')
+        # https://github.com/PyCQA/pylint/issues/1472
+        # pylint: disable=invalid-unary-operand-type
+        print_bugs(sorted_filtered_tasks[-limit_subscribed:],
+                   open_in_browser, shortlinks, limit_subscribed=None,
+                   oder_by_date=False, is_sorted=True, extended=extended)
+        return
 
     opened = False
     reportedbugs = []
     for task in sorted_filtered_tasks:
         if task.number in reportedbugs:
-            print(task.compose_dup(shortlinks=shortlinks))
+            print(task.compose_dup(shortlinks=shortlinks, extended=extended))
             continue
 
-        print(task.compose_pretty(shortlinks=shortlinks))
+        print(task.compose_pretty(shortlinks=shortlinks, extended=extended))
 
         if open_in_browser:
             if opened:
@@ -299,16 +327,22 @@ def last_activity_ours(task, activitysubscribers):
 
     activitysubscribers_links = {p.self_link for p in activitysubscribers}
 
-    # activity_list contains a tuple of (date, person.self_link) pairs
-    unsorted_list = []
-    for msg in task.bug.messages:
+    # 1. activity_list shall contain a tuple of (date, person.self_link) pairs
+    # 2. messages collection is ordered and the last few elements are enough
+    # This avoid too many API round trips to launchpad. With 0.1-0.5 seconds
+    # per round trip and some overhead that is ~1.7s per bug now compared to
+    # the former rather excessive times on bugs with many comments
+    # Note: negative like [-3:] slices are not allowed here
+    activity_list = []
+    last_msgs_end = len(task.bug.messages)
+    last_msgs_start = 0 if last_msgs_end < 3 else last_msgs_end-3
+    for msg in task.bug.messages[last_msgs_start:last_msgs_end]:
         try:
-            unsorted_list.append((msg.date_created, msg.owner.self_link))
+            activity_list.append((msg.date_created, msg.owner.self_link))
         except ClientError as exc:
             if exc.response["status"] == "410":  # gone, user suspended
                 continue
             raise
-    activity_list = sorted(unsorted_list, key=lambda a: a[0])
 
     most_recent_activity = activity_list.pop()
 
@@ -343,52 +377,79 @@ def create_bug_list(
     project = launchpad.distributions['Ubuntu']
     team = launchpad.people[lpname]
 
-    if bugsubscriber:
-        # direct subscriber
-        bugs_since_start = {
-            task.self_link: task for task in searchTasks_in_all_active_series(
-                project,
-                modified_since=start_date, bug_subscriber=team, tags=tag,
-                tags_combinator='All',
-                status=status,
-            )}
-        bugs_since_end = {
-            task.self_link: task for task in searchTasks_in_all_active_series(
-                project,
-                modified_since=end_date, bug_subscriber=team, tags=tag,
-                tags_combinator='All',
-                status=status,
-            )}
+    if start_date is not None and end_date is not None:
+        if bugsubscriber:
+            # direct subscriber
+            bugs_since_start = {
+                task.self_link: task for task in
+                searchTasks_in_all_active_series(
+                    project,
+                    modified_since=start_date, bug_subscriber=team, tags=tag,
+                    tags_combinator='All',
+                    status=status,
+                )}
+            bugs_since_end = {
+                task.self_link: task for task in
+                searchTasks_in_all_active_series(
+                    project,
+                    modified_since=end_date, bug_subscriber=team, tags=tag,
+                    tags_combinator='All',
+                    status=status,
+                )}
 
-        # N/A for direct subscribers
-        already_sub_since_start = {}
+            # N/A for direct subscribers
+            already_sub_since_start = {}
 
+        else:
+            # structural_subscriber sans already subscribed
+            bugs_since_start = {
+                task.self_link: task for task in
+                searchTasks_in_all_active_series(
+                    project,
+                    modified_since=start_date, structural_subscriber=team,
+                    status=status,
+                )}
+            bugs_since_end = {
+                task.self_link: task for task in
+                searchTasks_in_all_active_series(
+                    project,
+                    modified_since=end_date, structural_subscriber=team,
+                    status=status,
+                )}
+            already_sub_since_start = {
+                task.self_link: task for task in
+                searchTasks_in_all_active_series(
+                    project,
+                    modified_since=start_date, structural_subscriber=team,
+                    bug_subscriber=team,
+                    status=status,
+                )}
+
+        bugs_in_range = {
+            link: task for link, task in bugs_since_start.items()
+            if link not in bugs_since_end
+        }
     else:
-        # structural_subscriber sans already subscribed
-        bugs_since_start = {
-            task.self_link: task for task in searchTasks_in_all_active_series(
-                project,
-                modified_since=start_date, structural_subscriber=team,
-                status=status,
-            )}
-        bugs_since_end = {
-            task.self_link: task for task in searchTasks_in_all_active_series(
-                project,
-                modified_since=end_date, structural_subscriber=team,
-                status=status,
-            )}
-        already_sub_since_start = {
-            task.self_link: task for task in searchTasks_in_all_active_series(
-                project,
-                modified_since=start_date, structural_subscriber=team,
-                bug_subscriber=team,
-                status=status,
-            )}
-
-    bugs_in_range = {
-        link: task for link, task in bugs_since_start.items()
-        if link not in bugs_since_end
-    }
+        already_sub_since_start = {}
+        if bugsubscriber:
+            # direct subscriber
+            bugs_in_range = {
+                task.self_link: task for task in
+                searchTasks_in_all_active_series(
+                    project,
+                    bug_subscriber=team, tags=tag,
+                    tags_combinator='All',
+                    status=status,
+                )}
+        else:
+            # structural_subscriber sans already subscribed
+            bugs_in_range = {
+                task.self_link: task for task in
+                searchTasks_in_all_active_series(
+                    project,
+                    structural_subscriber=team,
+                    status=status,
+                )}
 
     bugs = {
         Task.create_from_launchpadlib_object(
@@ -424,65 +485,88 @@ def report_current_backlog(lpname):
     )
 
 
-def print_expired_tagged_bugs(lpname, expiration, date_range, open_browser,
-                              shortlinks, blacklist):
-    """Print bugs with server-next that have not been touched in a while."""
+def print_tagged_bugs(lpname, expiration, date_range, open_browser,
+                      shortlinks, blacklist, activitysubscribers,
+                      tag, extended):
+    """Print tagged bugs.
+
+    Print tagged bugs, optionally those that have not been
+    touched in a while.
+    """
     logging.info('')
     logging.info('---')
-    logging.info('Bugs tagged \'%s\' and not touched in %s days',
-                 expiration['tag_next'], expiration['expire_next'])
-    expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
-                    - timedelta(days=expiration['expire_next']))
-    expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
-                  - timedelta(days=expiration['expire_next']))
-    expire_start = expire_start.strftime('%Y-%m-%d')
-    expire_end = expire_end.strftime('%Y-%m-%d')
+
+    if expiration is None:
+        logging.info('Bugs tagged "%s" and subscribed "%s"', tag, lpname)
+        expire_start = None
+        expire_end = None
+        wanted_statuses = TRACKED_BUG_STATUSES
+    else:
+        logging.info('Bugs tagged "%s" and subscribed "%s" and not touched'
+                     ' in %s days',
+                     tag, lpname, expiration['expire_tagged'])
+        expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
+                        - timedelta(days=expiration['expire_tagged']))
+        expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
+                      - timedelta(days=expiration['expire_tagged']))
+        expire_start = expire_start.strftime('%Y-%m-%d')
+        expire_end = expire_end.strftime('%Y-%m-%d')
+        wanted_statuses = OPEN_BUG_STATUSES
+
+    bugs = create_bug_list(
+        expire_start,
+        expire_end,
+        lpname, TEAMLPNAME, activitysubscribers,
+        tag=[tag, "-bot-stop-nagging"],
+        status=wanted_statuses
+    )
+    print_bugs(bugs, open_browser['exp'], shortlinks,
+               blacklist=blacklist, extended=extended)
+
+
+def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
+                          shortlinks, blacklist, limit_subscribed, extended):
+    """Print subscribed bugs - optionalla those not touched in a while."""
+    logging.info('')
+    logging.info('---')
+    if expiration is None:
+        logging.info('Bugs subscribed to %s', lpname)
+        expire_start = None
+        expire_end = None
+        tag = ["-bot-stop-nagging", "-server-next"]
+    else:
+        logging.info('Bugs subscribed to %s and not touched in %s days',
+                     lpname, expiration['expire'])
+        expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
+                        - timedelta(days=expiration['expire']))
+        expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
+                      - timedelta(days=expiration['expire']))
+        expire_start = expire_start.strftime('%Y-%m-%d')
+        expire_end = expire_end.strftime('%Y-%m-%d')
+        tag = "-bot-stop-nagging"
+
     bugs = create_bug_list(
         expire_start,
         expire_end,
         lpname, TEAMLPNAME, None,
-        tag=["server-next", "-bot-stop-nagging"],
+        tag=tag,
         status=OPEN_BUG_STATUSES,
     )
     print_bugs(bugs, open_browser['exp'], shortlinks,
-               blacklist=blacklist)
-
-
-def print_expired_backlog_bugs(lpname, expiration, date_range, open_browser,
-                               shortlinks, blacklist):
-    """Print bugs in the backlog that have not been touched in a while."""
-    logging.info('')
-    logging.info('---')
-    logging.info('Bugs in backlog and not touched in %s days',
-                 expiration['expire'])
-    expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
-                    - timedelta(days=expiration['expire']))
-    expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
-                  - timedelta(days=expiration['expire']))
-    expire_start = expire_start.strftime('%Y-%m-%d')
-    expire_end = expire_end.strftime('%Y-%m-%d')
-    bugs = create_bug_list(
-        expire_start,
-        expire_end,
-        lpname, TEAMLPNAME, None,
-        tag="-bot-stop-nagging",
-        status=OPEN_BUG_STATUSES,
-    )
-    print_bugs(bugs, open_browser['exp'], shortlinks,
-               blacklist=blacklist)
+               blacklist=blacklist, limit_subscribed=limit_subscribed,
+               oder_by_date=True, extended=extended)
 
 
 def main(date_range=None, debug=False, open_browser=None,
          lpname=TEAMLPNAME, bugsubscriber=False, shortlinks=True,
-         activitysubscribernames=None, expiration=None, blacklist=None):
+         activitysubscribernames=None, expiration=None,
+         show_no_triage=False, show_tagged=False, show_subscribed=False,
+         limit_subscribed=None, blacklist=None, tag="server-next",
+         extended=False):
     """Connect to Launchpad, get range of bugs, print 'em."""
     launchpad = connect_launchpad()
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
                         level=logging.DEBUG if debug else logging.INFO)
-
-    logging.info('Ubuntu Server Bug List')
-    logging.info('Please be patient, this can take a few minutes...')
-    report_current_backlog(lpname)
     if activitysubscribernames:
         activitysubscribers = (
             launchpad.people[activitysubscribernames].members
@@ -490,6 +574,26 @@ def main(date_range=None, debug=False, open_browser=None,
     else:
         activitysubscribers = []
 
+    logging.info('Ubuntu Server Triage helper')
+    logging.info('Symbols:')
+    logging.info('\'*\': %s is directly subscribed', lpname)
+    logging.info('\'+\': last bug activity is ours')
+    logging.info('Please be patient, this can take a few minutes...')
+
+    if show_tagged:
+        print_tagged_bugs(lpname, None, None, open_browser,
+                          shortlinks, blacklist, activitysubscribers,
+                          tag, extended)
+
+    if show_subscribed:
+        print_subscribed_bugs(lpname, None, None,
+                              open_browser, shortlinks,
+                              blacklist, limit_subscribed, extended)
+
+    if show_no_triage:
+        return
+
+    report_current_backlog(lpname)
     date_range['start'], date_range['end'] = parse_dates(date_range['start'],
                                                          date_range['end'])
 
@@ -502,8 +606,6 @@ def main(date_range=None, debug=False, open_browser=None,
     )
     pretty_start = inclusive_start.strftime('%Y-%m-%d (%A)')
     pretty_end = inclusive_end.strftime('%Y-%m-%d (%A)')
-    logging.info('\'*\': %s is directly subscribed', lpname)
-    logging.info('\'+\': last bug activity is ours')
     if inclusive_start == inclusive_end:
         logging.info(
             'Bugs last updated on %s',
@@ -524,13 +626,16 @@ def main(date_range=None, debug=False, open_browser=None,
         date_range['start'], date_range['end'],
         lpname, bugsubscriber, activitysubscribers
     )
-    print_bugs(bugs, open_browser['triage'], shortlinks, blacklist=blacklist)
+    print_bugs(bugs, open_browser['triage'], shortlinks, blacklist=blacklist,
+               extended=extended)
 
     if expiration['show_expiration']:
-        print_expired_tagged_bugs(lpname, expiration, date_range, open_browser,
-                                  shortlinks, blacklist)
-        print_expired_backlog_bugs(lpname, expiration, date_range,
-                                   open_browser, shortlinks, blacklist)
+        print_tagged_bugs(lpname, expiration, date_range, open_browser,
+                          shortlinks, blacklist, activitysubscribers, tag,
+                          extended)
+        print_subscribed_bugs(lpname, expiration, date_range,
+                              open_browser, shortlinks, blacklist,
+                              None, extended)
 
 
 def launch():
@@ -552,10 +657,11 @@ def launch():
                         dest='openexp',
                         help='open expiring bugs in web browser')
     parser.add_argument('-n', '--lpname', default=TEAMLPNAME,
-                        help='specify the launchpad name to search for')
+                        help='specify the launchpad name to search for'
+                             ' (default "%s")' % TEAMLPNAME)
     parser.add_argument('-b', '--bugsubscriber', action='store_true',
                         help=('filter name as bug subscriber (default would '
-                              'be structural subscriber'))
+                              'be structural subscriber)'))
     parser.add_argument('--fullurls', default=False, action='store_true',
                         help='show full URLs instead of shortcuts')
     parser.add_argument('--activitysubscribers',
@@ -572,36 +678,76 @@ def launch():
                         default=True,
                         action='store_false',
                         dest='show_expiration',
-                        help='Do not report about expiration of bugs')
-    parser.add_argument('--expire-next',
+                        help='Do not report about expiration of tagged and'
+                             ' subscribed bugs')
+    parser.add_argument('--expire-tagged',
                         default=60,
-                        dest='expire_next',
-                        help='Days to consider bugs that should be handled'
-                        ' next expired')
+                        type=int,
+                        dest='expire_tagged',
+                        help='Days to consider tagged bugs expired if no'
+                             ' update happened')
     parser.add_argument('--expire',
                         default=180,
+                        type=int,
                         dest='expire',
-                        help='Days to consider bugs expired')
-    parser.add_argument('--tag-next',
+                        help='Days to consider subscribed bugs expired if no'
+                             ' update happened')
+    parser.add_argument('--tag',
                         default='server-next',
-                        dest='tag_next',
-                        help='Tag that marks bugs to be handled soon')
+                        dest='tag',
+                        help='Tag that marks bugs (default "%s"). This will be'
+                             ' used for tag-expiry as well as --show-tagged'
+                             ' selection.' % DEFAULTTAG)
+    parser.add_argument('-T', '--show-tagged',
+                        default=False,
+                        action='store_true',
+                        dest='show_tagged',
+                        help='Display an additional list of bugs that'
+                             ' (--lpname or "%s") is directly subscribed to'
+                             ' and are tagged by (--tag or "%s")'
+                             % (TEAMLPNAME, DEFAULTTAG))
+    parser.add_argument('-B', '--show-subscribed',
+                        default=False,
+                        action='store_true',
+                        dest='show_subscribed',
+                        help='Display an additional list of bugs that '
+                             ' (--lpname or "%s") is directly subscribed to'
+                             % TEAMLPNAME)
+    parser.add_argument('-N', '--no-show-triage',
+                        default=False,
+                        action='store_true',
+                        dest='show_no_triage',
+                        help='Do not Display the default triage content'
+                             ' (recent and expiring bugs).')
+    parser.add_argument('--show-subscribed-max',
+                        default=None,
+                        type=int,
+                        dest='limit_subscribed',
+                        help='Limits the report of --show-subscribed to the'
+                             ' top and bottom number of tasks')
+    parser.add_argument('-E', '--extended-format',
+                        default=False,
+                        action='store_true',
+                        dest='extended_format',
+                        help='Do Display bugs in extended format which adds'
+                             ' date-last-updated, importance and assignee')
 
     args = parser.parse_args()
 
     open_browser = {'triage': args.open,
                     'exp': args.openexp}
-    expiration = {'expire_next': args.expire_next,
+    expiration = {'expire_tagged': args.expire_tagged,
                   'expire': args.expire,
-                  'tag_next': args.tag_next,
                   'show_expiration': args.show_expiration}
     date_range = {'start': args.start_date,
                   'end': args.end_date}
 
     main(date_range, args.debug, open_browser,
          args.lpname, args.bugsubscriber, not args.fullurls,
-         args.activitysubscribers, expiration,
-         blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST)
+         args.activitysubscribers, expiration, args.show_no_triage,
+         args.show_tagged, args.show_subscribed, args.limit_subscribed,
+         blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
+         tag=args.tag, extended=args.extended_format)
 
 
 if __name__ == '__main__':

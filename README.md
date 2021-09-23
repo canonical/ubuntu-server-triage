@@ -86,13 +86,45 @@ If instead a user is not interested at all in the expiration he can disable the 
 ustriage 2016-09-10 2016-09-12 --no-expiration
 ```
 
+### Output format
+
+The default output format is tailored to a quick overview that also
+can be copy and pasted into our triage status reports.
+
+But if someone wants to get more insight from those lists the
+argument --extended-format will add more fields to the output.
+Those are "date of the last update", "importance" and "assignee" (if there is any)
+
 ### Further options and use cases of bug expiration
 
 The expiration is defined as 60 days of inactivity in server-next tagged bugs, and 180 days for the other ubuntu-server subscribed bugs.
-These durations as well as the tag it considers for the "active" list can be tuned via the arguments, --expire-next, --expire and --tag-next.
+These durations as well as the tag it considers for the "active" list can be tuned via the arguments, --expire-tagged, --expire and --tag.
 This can be combined with a custom bug subscriber to be useful outside of the server team triage.
 So the following example for example will list any bugs subscribed by hardcoredev which are inactive for 5 or more days with the tag super-urgent.
 
 ```bash
-ustriage 2016-09-10 2016-09-12 --expire-next 5 --tag-next super-urgent --bugsubscriber hardcoredev
+ustriage 2016-09-10 2016-09-12 --expire-tagged 5 --tag super-urgent --bugsubscriber hardcoredev
+```
+
+### Usage for server bug housekeeping
+
+One can disable the default triage output via `--no-show-triage` and instead
+request lists of tagged bugs `--show-tagged` or just subscribed `--show-subscribed`.
+This is pretty handy on bug housekeeping as we use server-next and subscription to
+ubuntu-server as our current two levels of [bug tracking](https://github.com/canonical/ubuntu-maintainers-handbook/blob/main/BugTriage.md).
+
+Thereby one can easily check all our current subscribed and `server-next`
+tagged bugs (or any other tag via `--tag`):
+
+```bash
+ustriage --no-show-triage --show-tagged --extended-format
+```
+
+Or our bigger backlog of any open `ubuntu-server` (or any other via --lpname)
+subscribed bug task. This list can be rather long so `--show-subscribed-max`
+reduces it to that many entries from top and bottom of the list.
+This shows the most recent and the oldest 20 entries that are `ubuntu-server` subscribed.
+
+```bash
+ustriage --no-show-triage --show-subscribed --show-subscribed-max 20 --extended-format
 ```

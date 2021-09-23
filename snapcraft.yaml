@@ -1,5 +1,7 @@
 name: ustriage
 summary: Output Ubuntu Server Launchpad bugs for triage
+base: core18
+type: app
 description: |
   Connect to Launchpad and collect Ubuntu Server bugs for triage.
   List can be set to a specific or range of dates and allows for
@@ -25,7 +27,7 @@ apps:
 parts:
     ustriage:
         plugin: python
-        source: https://github.com/powersj/ubuntu-server-triage
+        source: https://github.com/canonical/ubuntu-server-triage
         source-type: git
         stage-packages:
             - python3-dateutil
