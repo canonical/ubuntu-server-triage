@@ -712,12 +712,12 @@ def launch():
                         dest='show_no_triage',
                         help='Do not Display the default triage content'
                              ' (recent and expiring bugs).')
-    parser.add_argument('--limit-subscribed',
+    parser.add_argument('--show-subscribed-max',
                         default=None,
                         type=int,
                         dest='limit_subscribed',
-                        help='Limits the report of subscribed bugs to the top '
-                             'and bottom number of tasks')
+                        help='Limits the report of --show-subscribed to the'
+                             ' top and bottom number of tasks')
 
     args = parser.parse_args()
 
