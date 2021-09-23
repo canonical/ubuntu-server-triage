@@ -695,14 +695,17 @@ def launch():
                         default=False,
                         action='store_true',
                         dest='show_tagged',
-                        help='Display (--lpname or "%s") bug that are tagged'
-                             ' by (--tag or "%s")' % (TEAMLPNAME, DEFAULTTAG))
+                        help='Display an additional list of bugs that'
+                             ' --lpname or "%s") is directly subscribed to'
+                             ' and are tagged by (--tag or "%s")'
+                             % (TEAMLPNAME, DEFAULTTAG))
     parser.add_argument('-B', '--show-subscribed',
                         default=False,
                         action='store_true',
                         dest='show_subscribed',
-                        help='Display all (--lpname or "%s") subscribed'
-                             ' bugs' % TEAMLPNAME)
+                        help='Display an additional list of bugs that '
+                             ' (--lpname or "%s") is directly subscribed to'
+                             % TEAMLPNAME)
     parser.add_argument('-N', '--show-no-triage',
                         default=False,
                         action='store_true',
