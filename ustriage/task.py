@@ -84,6 +84,12 @@ class Task:
 
     @property
     @lru_cache()
+    def importance(self):
+        """Return importance as returned by launchpad."""
+        return self.obj.importance
+
+    @property
+    @lru_cache()
     def src(self):
         """Source package."""
         # This could be self.target.name but using self.title is
@@ -154,8 +160,9 @@ class Task:
             ('[%s]' % truncate_string(self.src, 16))
         )
         if extended:
-            text += ' %8s %-13s' % (
+            text += ' %8s %-10s %-13s' % (
                 self.date_last_updated.strftime('%d.%m.%y'),
+                self.importance,
                 ('' if not self.assignee
                  else '=> %s' % truncate_string(self.assignee, 9))
             )
@@ -182,8 +189,9 @@ class Task:
             ('[%s]' % truncate_string(self.src, 16))
         )
         if extended:
-            text += ' %8s %-13s' % (
+            text += ' %8s %-10s %-13s' % (
                 "",
+                self.importance,
                 ('' if not self.assignee
                  else '=> %s' % truncate_string(self.assignee, 9))
             )

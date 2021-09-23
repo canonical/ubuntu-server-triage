@@ -730,7 +730,7 @@ def launch():
                         action='store_true',
                         dest='extended_format',
                         help='Do Display bugs in extended format which adds'
-                             ' date-last-updated and assignee')
+                             ' date-last-updated, importance and assignee')
 
     args = parser.parse_args()
 
