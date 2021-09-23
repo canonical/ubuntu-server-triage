@@ -117,7 +117,7 @@ class Task:
         }[self.obj.target.resource_type_link]
         return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
-    def compose_pretty(self, shortlinks=True):
+    def compose_pretty(self, shortlinks=True, extended=False):
         """Compose a printable line of relevant information."""
         if shortlinks:
             format_string = (
@@ -139,16 +139,21 @@ class Task:
             '+' if self.last_activity_ours else '',
         )
 
-        return '%s - %-16s %8s %-16s %-13s - %s' % (
+        text = '%s - %-16s %-16s' % (
             bug_url,
             ('%s(%s)' % (flags, self.status)),
-            self.date_last_updated.strftime('%d.%m.%y'),
-            ('[%s]' % self.src[0:13]),
-            ('' if not self.assignee else '=> %s' % self.assignee[0:9]),
-            self.short_title[0:60],
+            ('[%s]' % self.src[0:13])
         )
+        if extended:
+            text += ' %8s %-13s' % (
+                self.date_last_updated.strftime('%d.%m.%y'),
+                ('' if not self.assignee
+                 else '=> %s' % self.assignee[0:9]),
+            )
+        text += ' - %s' % self.short_title[0:60]
+        return text
 
-    def compose_dup(self, shortlinks=True):
+    def compose_dup(self, shortlinks=True, extended=False):
         """Compose a printable line of reduced information for a dup."""
         if shortlinks:
             duplen = str(self.BUG_NUMBER_LENGTH + len(self.SHORTLINK_ROOT))
@@ -162,13 +167,18 @@ class Task:
             '+' if self.last_activity_ours else '',
         )
 
-        return '%s - %-16s %8s %-16s %-13s' % (
+        text = '%s - %-16s %-16s' % (
             dupprefix,
             ('%s(%s)' % (flags, self.status)),
-            "",
-            ('[%s]' % self.src[0:13]),
-            ('' if not self.assignee else '=> %s' % self.assignee[0:9])
+            ('[%s]' % self.src[0:13])
         )
+        if extended:
+            text += ' %8s %-13s' % (
+                "",
+                ('' if not self.assignee
+                 else '=> %s' % self.assignee[0:9]),
+            )
+        return text
 
     def sort_key(self):
         """Sort method."""

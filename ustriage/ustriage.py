@@ -261,7 +261,8 @@ def parse_dates(start, end=None):
 
 
 def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
-               limit_subscribed=None, oder_by_date=False, is_sorted=False):
+               limit_subscribed=None, oder_by_date=False, is_sorted=False,
+               extended=False):
     """Print the tasks in a clean-ish format."""
     blacklist = blacklist or []
 
@@ -282,24 +283,24 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
         logging.info('# Recent tasks #')
         print_bugs(sorted_filtered_tasks[:limit_subscribed],
                    open_in_browser, shortlinks, limit_subscribed=None,
-                   oder_by_date=False, is_sorted=True)
+                   oder_by_date=False, is_sorted=True, extended=extended)
         logging.info('---------------------------------------------------')
         logging.info('# Oldest tasks #')
         # https://github.com/PyCQA/pylint/issues/1472
         # pylint: disable=invalid-unary-operand-type
         print_bugs(sorted_filtered_tasks[-limit_subscribed:],
                    open_in_browser, shortlinks, limit_subscribed=None,
-                   oder_by_date=False, is_sorted=True)
+                   oder_by_date=False, is_sorted=True, extended=extended)
         return
 
     opened = False
     reportedbugs = []
     for task in sorted_filtered_tasks:
         if task.number in reportedbugs:
-            print(task.compose_dup(shortlinks=shortlinks))
+            print(task.compose_dup(shortlinks=shortlinks, extended=extended))
             continue
 
-        print(task.compose_pretty(shortlinks=shortlinks))
+        print(task.compose_pretty(shortlinks=shortlinks, extended=extended))
 
         if open_in_browser:
             if opened:
@@ -485,7 +486,8 @@ def report_current_backlog(lpname):
 
 
 def print_tagged_bugs(lpname, expiration, date_range, open_browser,
-                      shortlinks, blacklist, activitysubscribers, tag):
+                      shortlinks, blacklist, activitysubscribers,
+                      tag, extended):
     """Print tagged bugs.
 
     Print tagged bugs, optionally those that have not been
@@ -519,11 +521,11 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
         status=wanted_statuses
     )
     print_bugs(bugs, open_browser['exp'], shortlinks,
-               blacklist=blacklist)
+               blacklist=blacklist, extended=extended)
 
 
 def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
-                          shortlinks, blacklist, limit_subscribed):
+                          shortlinks, blacklist, limit_subscribed, extended):
     """Print subscribed bugs - optionalla those not touched in a while."""
     logging.info('')
     logging.info('---')
@@ -552,14 +554,15 @@ def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
     )
     print_bugs(bugs, open_browser['exp'], shortlinks,
                blacklist=blacklist, limit_subscribed=limit_subscribed,
-               oder_by_date=True)
+               oder_by_date=True, extended=extended)
 
 
 def main(date_range=None, debug=False, open_browser=None,
          lpname=TEAMLPNAME, bugsubscriber=False, shortlinks=True,
          activitysubscribernames=None, expiration=None,
          show_no_triage=False, show_tagged=False, show_subscribed=False,
-         limit_subscribed=None, blacklist=None, tag="server-next"):
+         limit_subscribed=None, blacklist=None, tag="server-next",
+         extended=False):
     """Connect to Launchpad, get range of bugs, print 'em."""
     launchpad = connect_launchpad()
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
@@ -579,12 +582,13 @@ def main(date_range=None, debug=False, open_browser=None,
 
     if show_tagged:
         print_tagged_bugs(lpname, None, None, open_browser,
-                          shortlinks, blacklist, activitysubscribers, tag)
+                          shortlinks, blacklist, activitysubscribers,
+                          tag, extended)
 
     if show_subscribed:
         print_subscribed_bugs(lpname, None, None,
                               open_browser, shortlinks,
-                              blacklist, limit_subscribed)
+                              blacklist, limit_subscribed, extended)
 
     if show_no_triage:
         return
@@ -622,13 +626,16 @@ def main(date_range=None, debug=False, open_browser=None,
         date_range['start'], date_range['end'],
         lpname, bugsubscriber, activitysubscribers
     )
-    print_bugs(bugs, open_browser['triage'], shortlinks, blacklist=blacklist)
+    print_bugs(bugs, open_browser['triage'], shortlinks, blacklist=blacklist,
+               extended=extended)
 
     if expiration['show_expiration']:
         print_tagged_bugs(lpname, expiration, date_range, open_browser,
-                          shortlinks, blacklist, activitysubscribers, tag)
+                          shortlinks, blacklist, activitysubscribers, tag,
+                          extended)
         print_subscribed_bugs(lpname, expiration, date_range,
-                              open_browser, shortlinks, blacklist, None)
+                              open_browser, shortlinks, blacklist,
+                              None, extended)
 
 
 def launch():
@@ -718,6 +725,12 @@ def launch():
                         dest='limit_subscribed',
                         help='Limits the report of --show-subscribed to the'
                              ' top and bottom number of tasks')
+    parser.add_argument('-E', '--extended-format',
+                        default=False,
+                        action='store_true',
+                        dest='extended_format',
+                        help='Do Display bugs in extended format which adds'
+                             ' date-last-updated and assignee')
 
     args = parser.parse_args()
 
@@ -734,7 +747,7 @@ def launch():
          args.activitysubscribers, expiration, args.show_no_triage,
          args.show_tagged, args.show_subscribed, args.limit_subscribed,
          blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
-         tag=args.tag)
+         tag=args.tag, extended=args.extended_format)
 
 
 if __name__ == '__main__':
