@@ -706,7 +706,7 @@ def launch():
                         help='Display an additional list of bugs that '
                              ' (--lpname or "%s") is directly subscribed to'
                              % TEAMLPNAME)
-    parser.add_argument('-N', '--show-no-triage',
+    parser.add_argument('-N', '--no-show-triage',
                         default=False,
                         action='store_true',
                         dest='show_no_triage',
