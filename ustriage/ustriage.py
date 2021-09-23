@@ -572,6 +572,9 @@ def main(date_range=None, debug=False, open_browser=None,
         activitysubscribers = []
 
     logging.info('Ubuntu Server Triage helper')
+    logging.info('Symbols:')
+    logging.info('\'*\': %s is directly subscribed', lpname)
+    logging.info('\'+\': last bug activity is ours')
     logging.info('Please be patient, this can take a few minutes...')
 
     if show_tagged:
@@ -599,8 +602,6 @@ def main(date_range=None, debug=False, open_browser=None,
     )
     pretty_start = inclusive_start.strftime('%Y-%m-%d (%A)')
     pretty_end = inclusive_end.strftime('%Y-%m-%d (%A)')
-    logging.info('\'*\': %s is directly subscribed', lpname)
-    logging.info('\'+\': last bug activity is ours')
     if inclusive_start == inclusive_end:
         logging.info(
             'Bugs last updated on %s',
