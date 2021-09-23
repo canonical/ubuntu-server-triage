@@ -148,10 +148,10 @@ class Task:
             '+' if self.last_activity_ours else '',
         )
 
-        text = '%s - %-16s %-16s' % (
+        text = '%s - %-16s %-19s' % (
             bug_url,
             ('%s(%s)' % (flags, self.status)),
-            ('[%s]' % truncate_string(self.src, 13))
+            ('[%s]' % truncate_string(self.src, 16))
         )
         if extended:
             text += ' %8s %-13s' % (
@@ -176,10 +176,10 @@ class Task:
             '+' if self.last_activity_ours else '',
         )
 
-        text = '%s - %-16s %-16s' % (
+        text = '%s - %-16s %-19s' % (
             dupprefix,
             ('%s(%s)' % (flags, self.status)),
-            ('[%s]' % truncate_string(self.src, 13))
+            ('[%s]' % truncate_string(self.src, 16))
         )
         if extended:
             text += ' %8s %-13s' % (
