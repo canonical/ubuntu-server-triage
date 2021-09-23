@@ -145,7 +145,7 @@ class Task:
             self.date_last_updated.strftime('%d.%m.%y'),
             ('[%s]' % self.src[0:13]),
             ('' if not self.assignee else '=> %s' % self.assignee[0:9]),
-            self.short_title,
+            self.short_title[0:60],
         )
 
     def compose_dup(self, shortlinks=True):
