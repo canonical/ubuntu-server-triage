@@ -39,6 +39,16 @@ PACKAGE_BLACKLIST = {
 TEAMLPNAME = "ubuntu-server"
 DEFAULTTAG = "server-next"
 
+# See the "Merge Board Coordination" specification for details about these tags
+PACKAGING_TASK_TAGS = [
+    'needs-merge',
+    'needs-sync',
+    'needs-oci-update',
+    'needs-snap-update',
+    'needs-mre-backport',
+    'needs-ppa-backport',
+]
+
 POSSIBLE_BUG_STATUSES = [
     "New",
     "Incomplete",
@@ -622,9 +632,14 @@ def main(date_range=None, debug=False, open_browser=None,
     if triage_day_name:
         logging.info("Date range identified as: \"%s\"", triage_day_name)
 
+    # Exclude all workflow bugs dealing with packaging tasks (merges,
+    # syncs, et al) since they're noisy, don't need triaging work, and
+    # are already tracked by other processes.
+    tags = [f"-{t}" for t in PACKAGING_TASK_TAGS]
     bugs = create_bug_list(
         date_range['start'], date_range['end'],
-        lpname, bugsubscriber, activitysubscribers
+        lpname, bugsubscriber, activitysubscribers,
+        tag=tags
     )
     print_bugs(bugs, open_browser['triage'], shortlinks, blacklist=blacklist,
                extended=extended)
