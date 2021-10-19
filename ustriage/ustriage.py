@@ -378,7 +378,7 @@ def last_activity_ours(task, activitysubscribers):
 
 def create_bug_list(
         start_date, end_date, lpname, bugsubscriber, activitysubscribers,
-        tag=None, status=POSSIBLE_BUG_STATUSES
+        tags=None, status=POSSIBLE_BUG_STATUSES
 ):  # pylint: disable=dangerous-default-value
     """Return a list of bugs modified between dates."""
     # Distribution List: https://launchpad.net/distros
@@ -394,7 +394,9 @@ def create_bug_list(
                 task.self_link: task for task in
                 searchTasks_in_all_active_series(
                     project,
-                    modified_since=start_date, bug_subscriber=team, tags=tag,
+                    modified_since=start_date,
+                    bug_subscriber=team,
+                    tags=tags,
                     tags_combinator='All',
                     status=status,
                 )}
@@ -402,7 +404,9 @@ def create_bug_list(
                 task.self_link: task for task in
                 searchTasks_in_all_active_series(
                     project,
-                    modified_since=end_date, bug_subscriber=team, tags=tag,
+                    modified_since=end_date,
+                    bug_subscriber=team,
+                    tags=tags,
                     tags_combinator='All',
                     status=status,
                 )}
@@ -447,7 +451,8 @@ def create_bug_list(
                 task.self_link: task for task in
                 searchTasks_in_all_active_series(
                     project,
-                    bug_subscriber=team, tags=tag,
+                    bug_subscriber=team,
+                    tags=tags,
                     tags_combinator='All',
                     status=status,
                 )}
@@ -527,7 +532,7 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
         expire_start,
         expire_end,
         lpname, TEAMLPNAME, activitysubscribers,
-        tag=[tag, "-bot-stop-nagging"],
+        tags=[tag, "-bot-stop-nagging"],
         status=wanted_statuses
     )
     print_bugs(bugs, open_browser['exp'], shortlinks,
@@ -559,7 +564,7 @@ def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
         expire_start,
         expire_end,
         lpname, TEAMLPNAME, None,
-        tag=tag,
+        tags=tag,
         status=OPEN_BUG_STATUSES,
     )
     print_bugs(bugs, open_browser['exp'], shortlinks,
@@ -593,7 +598,7 @@ def main(date_range=None, debug=False, open_browser=None,
     if show_tagged:
         print_tagged_bugs(lpname, None, None, open_browser,
                           shortlinks, blacklist, activitysubscribers,
-                          tag, extended)
+                          [tag], extended)
 
     if show_subscribed:
         print_subscribed_bugs(lpname, None, None,
@@ -639,7 +644,7 @@ def main(date_range=None, debug=False, open_browser=None,
     bugs = create_bug_list(
         date_range['start'], date_range['end'],
         lpname, bugsubscriber, activitysubscribers,
-        tag=tags
+        tags=tags
     )
     print_bugs(bugs, open_browser['triage'], shortlinks, blacklist=blacklist,
                extended=extended)
