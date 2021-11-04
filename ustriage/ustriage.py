@@ -502,7 +502,7 @@ def report_current_backlog(lpname):
 
 def print_tagged_bugs(lpname, expiration, date_range, open_browser,
                       shortlinks, blacklist, activitysubscribers,
-                      tag, extended):
+                      tags, extended):
     """Print tagged bugs.
 
     Print tagged bugs, optionally those that have not been
@@ -512,14 +512,15 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
     logging.info('---')
 
     if expiration is None:
-        logging.info('Bugs tagged "%s" and subscribed "%s"', tag, lpname)
+        logging.info('Bugs tagged "%s" and subscribed "%s"', ' '.join(tags),
+                     lpname)
         expire_start = None
         expire_end = None
         wanted_statuses = TRACKED_BUG_STATUSES
     else:
         logging.info('Bugs tagged "%s" and subscribed "%s" and not touched'
                      ' in %s days',
-                     tag, lpname, expiration['expire_tagged'])
+                     ' '.join(tags), lpname, expiration['expire_tagged'])
         expire_start = (datetime.strptime(date_range['start'], '%Y-%m-%d')
                         - timedelta(days=expiration['expire_tagged']))
         expire_end = (datetime.strptime(date_range['end'], '%Y-%m-%d')
@@ -532,7 +533,7 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
         expire_start,
         expire_end,
         lpname, TEAMLPNAME, activitysubscribers,
-        tags=[tag, "-bot-stop-nagging"],
+        tags=tags + ["-bot-stop-nagging"],
         status=wanted_statuses
     )
     print_bugs(bugs, open_browser['exp'], shortlinks,
@@ -548,7 +549,7 @@ def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
         logging.info('Bugs subscribed to %s', lpname)
         expire_start = None
         expire_end = None
-        tag = ["-bot-stop-nagging", "-server-next"]
+        tags = ["-bot-stop-nagging", "-server-next"]
     else:
         logging.info('Bugs subscribed to %s and not touched in %s days',
                      lpname, expiration['expire'])
@@ -558,13 +559,13 @@ def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
                       - timedelta(days=expiration['expire']))
         expire_start = expire_start.strftime('%Y-%m-%d')
         expire_end = expire_end.strftime('%Y-%m-%d')
-        tag = "-bot-stop-nagging"
+        tags = ["-bot-stop-nagging"]
 
     bugs = create_bug_list(
         expire_start,
         expire_end,
         lpname, TEAMLPNAME, None,
-        tags=tag,
+        tags=tags,
         status=OPEN_BUG_STATUSES,
     )
     print_bugs(bugs, open_browser['exp'], shortlinks,
@@ -576,9 +577,11 @@ def main(date_range=None, debug=False, open_browser=None,
          lpname=TEAMLPNAME, bugsubscriber=False, shortlinks=True,
          activitysubscribernames=None, expiration=None,
          show_no_triage=False, show_tagged=False, show_subscribed=False,
-         limit_subscribed=None, blacklist=None, tag="server-next",
+         limit_subscribed=None, blacklist=None, tags=None,
          extended=False):
     """Connect to Launchpad, get range of bugs, print 'em."""
+    if tags is None:
+        tags = ["server-next"]
     launchpad = connect_launchpad()
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
                         level=logging.DEBUG if debug else logging.INFO)
@@ -598,7 +601,7 @@ def main(date_range=None, debug=False, open_browser=None,
     if show_tagged:
         print_tagged_bugs(lpname, None, None, open_browser,
                           shortlinks, blacklist, activitysubscribers,
-                          [tag], extended)
+                          tags, extended)
 
     if show_subscribed:
         print_subscribed_bugs(lpname, None, None,
@@ -651,7 +654,7 @@ def main(date_range=None, debug=False, open_browser=None,
 
     if expiration['show_expiration']:
         print_tagged_bugs(lpname, expiration, date_range, open_browser,
-                          shortlinks, blacklist, activitysubscribers, tag,
+                          shortlinks, blacklist, activitysubscribers, tags,
                           extended)
         print_subscribed_bugs(lpname, expiration, date_range,
                               open_browser, shortlinks, blacklist,
@@ -725,14 +728,14 @@ def launch():
                         help='Display an additional list of bugs that'
                              ' (--lpname or "%s") is directly subscribed to'
                              ' and are tagged by (--tag or "%s")'
-                             % (TEAMLPNAME, DEFAULTTAG))
+                        % (TEAMLPNAME, DEFAULTTAG))
     parser.add_argument('-B', '--show-subscribed',
                         default=False,
                         action='store_true',
                         dest='show_subscribed',
                         help='Display an additional list of bugs that '
                              ' (--lpname or "%s") is directly subscribed to'
-                             % TEAMLPNAME)
+                        % TEAMLPNAME)
     parser.add_argument('-N', '--no-show-triage',
                         default=False,
                         action='store_true',
@@ -767,7 +770,7 @@ def launch():
          args.activitysubscribers, expiration, args.show_no_triage,
          args.show_tagged, args.show_subscribed, args.limit_subscribed,
          blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
-         tag=args.tag, extended=args.extended_format)
+         tags=[args.tag], extended=args.extended_format)
 
 
 if __name__ == '__main__':
