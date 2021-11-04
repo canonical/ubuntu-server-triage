@@ -512,7 +512,8 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
     logging.info('---')
 
     if expiration is None:
-        logging.info('Bugs tagged "%s" and subscribed "%s"', ' '.join(tags), lpname)
+        logging.info('Bugs tagged "%s" and subscribed "%s"', ' '.join(tags),
+                     lpname)
         expire_start = None
         expire_end = None
         wanted_statuses = TRACKED_BUG_STATUSES
@@ -576,9 +577,11 @@ def main(date_range=None, debug=False, open_browser=None,
          lpname=TEAMLPNAME, bugsubscriber=False, shortlinks=True,
          activitysubscribernames=None, expiration=None,
          show_no_triage=False, show_tagged=False, show_subscribed=False,
-         limit_subscribed=None, blacklist=None, tags=["server-next"],
+         limit_subscribed=None, blacklist=None, tags=None,
          extended=False):
     """Connect to Launchpad, get range of bugs, print 'em."""
+    if tags is None:
+        tags = ["server-next"]
     launchpad = connect_launchpad()
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
                         level=logging.DEBUG if debug else logging.INFO)
@@ -725,14 +728,14 @@ def launch():
                         help='Display an additional list of bugs that'
                              ' (--lpname or "%s") is directly subscribed to'
                              ' and are tagged by (--tag or "%s")'
-                             % (TEAMLPNAME, DEFAULTTAG))
+                        % (TEAMLPNAME, DEFAULTTAG))
     parser.add_argument('-B', '--show-subscribed',
                         default=False,
                         action='store_true',
                         dest='show_subscribed',
                         help='Display an additional list of bugs that '
                              ' (--lpname or "%s") is directly subscribed to'
-                             % TEAMLPNAME)
+                        % TEAMLPNAME)
     parser.add_argument('-N', '--no-show-triage',
                         default=False,
                         action='store_true',
