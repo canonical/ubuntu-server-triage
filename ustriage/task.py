@@ -10,7 +10,6 @@ Joshua Powers <josh.powers@canonical.com>
 """
 
 from functools import lru_cache
-from datetime import datetime, timedelta, timezone
 
 
 DISTRIBUTION_RESOURCE_TYPE_LINK = (
@@ -41,6 +40,7 @@ class Task:
     LONG_URL_ROOT = 'https://pad.lv/'
     SHORTLINK_ROOT = 'LP: #'
     BUG_NUMBER_LENGTH = 7
+    AGE = None
 
     def __init__(self):
         """Init task object."""
@@ -82,12 +82,6 @@ class Task:
     def date_last_updated(self):
         """Last update as datetime returned by launchpad."""
         return self.obj.bug.date_last_updated
-
-    @property
-    @lru_cache()
-    def date_one_week_ago(self):
-        """Time ~ one week ago - no recalcualtion."""
-        return datetime.now(timezone.utc) - timedelta(days=7)
 
     @property
     @lru_cache()
@@ -139,12 +133,16 @@ class Task:
         }[self.obj.target.resource_type_link]
         return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
-    def set_flags(self):
-        return '%s%s%s' % (
+    def get_flags(self):
+        """Get flags representing the status of the task."""
+        flags = '%s%s' % (
             '*' if self.subscribed else '',
             '+' if self.last_activity_ours else '',
-            'U' if self.date_last_updated > self.date_one_week_ago else '',
         )
+        if self.AGE:
+            if self.date_last_updated > self.AGE:
+                flags += 'U'
+        return flags
 
     def compose_pretty(self, shortlinks=True, extended=False):
         """Compose a printable line of relevant information."""
@@ -163,7 +161,7 @@ class Task:
             )
             bug_url = format_string % self.url
 
-        flags = self.set_flags()
+        flags = self.get_flags()
 
         text = '%s - %3s %-13s %-19s' % (
             bug_url,
@@ -190,7 +188,7 @@ class Task:
         format_string = ('%-' + duplen + 's')
         dupprefix = format_string % 'also:'
 
-        flags = self.set_flags()
+        flags = self.get_flags()
 
         text = '%s - %3s %-13s %-19s' % (
             dupprefix,
