@@ -10,6 +10,7 @@ Joshua Powers <josh.powers@canonical.com>
 """
 
 from functools import lru_cache
+from datetime import datetime, timedelta, timezone
 
 
 DISTRIBUTION_RESOURCE_TYPE_LINK = (
@@ -84,6 +85,12 @@ class Task:
 
     @property
     @lru_cache()
+    def date_one_week_ago(self):
+        """Time ~ one week ago - no recalcualtion."""
+        return datetime.now(timezone.utc) - timedelta(days=7)
+
+    @property
+    @lru_cache()
     def importance(self):
         """Return importance as returned by launchpad."""
         return self.obj.importance
@@ -133,9 +140,10 @@ class Task:
         return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
     def set_flags(self):
-        return '%s%s' % (
+        return '%s%s%s' % (
             '*' if self.subscribed else '',
             '+' if self.last_activity_ours else '',
+            'U' if self.date_last_updated > self.date_one_week_ago else '',
         )
 
     def compose_pretty(self, shortlinks=True, extended=False):
@@ -157,7 +165,7 @@ class Task:
 
         flags = self.set_flags()
 
-        text = '%s - %3s %-12s %-19s' % (
+        text = '%s - %3s %-13s %-19s' % (
             bug_url,
             flags,
             ('%s' % self.status),
@@ -184,7 +192,7 @@ class Task:
 
         flags = self.set_flags()
 
-        text = '%s - %3s %-12s %-19s' % (
+        text = '%s - %3s %-13s %-19s' % (
             dupprefix,
             flags,
             ('%s' % self.status),

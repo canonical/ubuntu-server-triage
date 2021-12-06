@@ -596,6 +596,7 @@ def main(date_range=None, debug=False, open_browser=None,
     logging.info('Symbols:')
     logging.info('\'*\': %s is directly subscribed', lpname)
     logging.info('\'+\': last bug activity is ours')
+    logging.info('\'U\': Updated in the last 7 days')
     logging.info('Please be patient, this can take a few minutes...')
 
     if show_tagged:
