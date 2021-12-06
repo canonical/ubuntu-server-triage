@@ -132,6 +132,12 @@ class Task:
         }[self.obj.target.resource_type_link]
         return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
+    def set_flags(self):
+        return '%s%s' % (
+            '*' if self.subscribed else '',
+            '+' if self.last_activity_ours else '',
+        )
+
     def compose_pretty(self, shortlinks=True, extended=False):
         """Compose a printable line of relevant information."""
         if shortlinks:
@@ -149,14 +155,12 @@ class Task:
             )
             bug_url = format_string % self.url
 
-        flags = '%s%s' % (
-            '*' if self.subscribed else '',
-            '+' if self.last_activity_ours else '',
-        )
+        flags = self.set_flags()
 
-        text = '%s - %-16s %-19s' % (
+        text = '%s - %3s %-12s %-19s' % (
             bug_url,
-            ('%s(%s)' % (flags, self.status)),
+            flags,
+            ('%s' % self.status),
             ('[%s]' % truncate_string(self.src, 16))
         )
         if extended:
@@ -178,14 +182,12 @@ class Task:
         format_string = ('%-' + duplen + 's')
         dupprefix = format_string % 'also:'
 
-        flags = '%s%s' % (
-            '*' if self.subscribed else '',
-            '+' if self.last_activity_ours else '',
-        )
+        flags = self.set_flags()
 
-        text = '%s - %-16s %-19s' % (
+        text = '%s - %3s %-12s %-19s' % (
             dupprefix,
-            ('%s(%s)' % (flags, self.status)),
+            flags,
+            ('%s' % self.status),
             ('[%s]' % truncate_string(self.src, 16))
         )
         if extended:
