@@ -774,22 +774,17 @@ def launch():
     date_range = {'start': args.start_date,
                   'end': args.end_date}
 
-    if args.age == -1:
-        if args.show_subscribed or args.show_tagged:
-            age = 7
-        else:
-            age = False
-    else:
-        age = args.age
-    if age:
-        Task.AGE = datetime.now(timezone.utc) - timedelta(days=age)
+    if args.age is False and (args.show_subscribed or args.show_tagged):
+        args.age = 7
+    if args.age is not False:
+        Task.AGE = datetime.now(timezone.utc) - timedelta(days=args.age)
 
     main(date_range, args.debug, open_browser,
          args.lpname, args.bugsubscriber, not args.fullurls,
          args.activitysubscribers, expiration, args.show_no_triage,
          args.show_tagged, args.show_subscribed, args.limit_subscribed,
          blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
-         tags=[args.tag], extended=args.extended_format, age=age)
+         tags=[args.tag], extended=args.extended_format, age=args.age)
 
 
 if __name__ == '__main__':
