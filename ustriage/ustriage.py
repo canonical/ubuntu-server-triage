@@ -756,12 +756,12 @@ def launch():
                         dest='extended_format',
                         help='Do Display bugs in extended format which adds'
                              ' date-last-updated, importance and assignee')
-    parser.add_argument('-A', '--age',
-                        default=-1,
+    parser.add_argument('-F', '--flag-recent',
+                        default=False,
                         type=int,
                         dest='age',
-                        help='Mark bugs older than this many days (default'
-                             ' disabled in triage, 7 days in '
+                        help='Mark bugs touched more recently than this many'
+                             ' days (default disabled in triage, 7 days in '
                              ' tag/subscription search)')
 
     args = parser.parse_args()
