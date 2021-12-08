@@ -9,7 +9,7 @@ Joshua Powers <josh.powers@canonical.com>
 Christian Ehrhardt <christian.ehrhardt@canonical.com>
 """
 import argparse
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 import logging
 import os
 import re
@@ -578,7 +578,7 @@ def main(date_range=None, debug=False, open_browser=None,
          activitysubscribernames=None, expiration=None,
          show_no_triage=False, show_tagged=False, show_subscribed=False,
          limit_subscribed=None, blacklist=None, tags=None,
-         extended=False):
+         extended=False, age=False):
     """Connect to Launchpad, get range of bugs, print 'em."""
     if tags is None:
         tags = ["server-next"]
@@ -596,6 +596,8 @@ def main(date_range=None, debug=False, open_browser=None,
     logging.info('Symbols:')
     logging.info('\'*\': %s is directly subscribed', lpname)
     logging.info('\'+\': last bug activity is ours')
+    if age:
+        logging.info('\'U\': Updated in the last %s days', age)
     logging.info('Please be patient, this can take a few minutes...')
 
     if show_tagged:
@@ -754,6 +756,13 @@ def launch():
                         dest='extended_format',
                         help='Do Display bugs in extended format which adds'
                              ' date-last-updated, importance and assignee')
+    parser.add_argument('-F', '--flag-recent',
+                        default=False,
+                        type=int,
+                        dest='age',
+                        help='Mark bugs touched more recently than this many'
+                             ' days (default disabled in triage, 7 days in '
+                             ' tag/subscription search)')
 
     args = parser.parse_args()
 
@@ -765,12 +774,17 @@ def launch():
     date_range = {'start': args.start_date,
                   'end': args.end_date}
 
+    if args.age is False and (args.show_subscribed or args.show_tagged):
+        args.age = 7
+    if args.age is not False:
+        Task.AGE = datetime.now(timezone.utc) - timedelta(days=args.age)
+
     main(date_range, args.debug, open_browser,
          args.lpname, args.bugsubscriber, not args.fullurls,
          args.activitysubscribers, expiration, args.show_no_triage,
          args.show_tagged, args.show_subscribed, args.limit_subscribed,
          blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
-         tags=[args.tag], extended=args.extended_format)
+         tags=[args.tag], extended=args.extended_format, age=args.age)
 
 
 if __name__ == '__main__':
