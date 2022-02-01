@@ -136,12 +136,12 @@ class Task:
     def get_flags(self):
         """Get flags representing the status of the task."""
         flags = ''
-        if self.subscribed:
-            flags += '*'
-        if self.last_activity_ours:
-            flags += '+'
-        if self.AGE and self.date_last_updated > self.AGE:
+        flags += '*' if self.subscribed else ' '
+        flags += '+' if self.last_activity_ours else ' '
+        if (self.AGE and self.date_last_updated > self.AGE):
             flags += 'U'
+        else:
+            flags += ' '
         return flags
 
     def compose_pretty(self, shortlinks=True, extended=False):
