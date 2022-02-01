@@ -133,7 +133,7 @@ class Task:
         }[self.obj.target.resource_type_link]
         return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
-    def get_flags(self):
+    def get_flags(self, newbug=False):
         """Get flags representing the status of the task."""
         flags = ''
         flags += '*' if self.subscribed else ' '
@@ -142,9 +142,10 @@ class Task:
             flags += 'U'
         else:
             flags += ' '
+        flags += 'N' if newbug else ' '
         return flags
 
-    def compose_pretty(self, shortlinks=True, extended=False):
+    def compose_pretty(self, shortlinks=True, extended=False, newbug=False):
         """Compose a printable line of relevant information."""
         if shortlinks:
             format_string = (
@@ -161,9 +162,9 @@ class Task:
             )
             bug_url = format_string % self.url
 
-        flags = self.get_flags()
+        flags = self.get_flags(newbug)
 
-        text = '%s - %3s %-13s %-19s' % (
+        text = '%s - %4s %-13s %-19s' % (
             bug_url,
             flags,
             ('%s' % self.status),
@@ -190,7 +191,7 @@ class Task:
 
         flags = self.get_flags()
 
-        text = '%s - %3s %-13s %-19s' % (
+        text = '%s - %4s %-13s %-19s' % (
             dupprefix,
             flags,
             ('%s' % self.status),
