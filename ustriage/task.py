@@ -134,7 +134,10 @@ class Task:
         return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
     def get_flags(self, newbug=False):
-        """Get flags representing the status of the task."""
+        """Get flags representing the status of the task.
+
+        Note: This has to stay a fixed length string to maintain the layout
+        """
         flags = ''
         flags += '*' if self.subscribed else ' '
         flags += '+' if self.last_activity_ours else ' '
@@ -162,7 +165,7 @@ class Task:
             )
             bug_url = format_string % self.url
 
-        text = '%s - %4s %-13s %-19s' % (
+        text = '%s - %s %-13s %-19s' % (
             bug_url,
             self.get_flags(newbug),
             ('%s' % self.status),
@@ -187,7 +190,7 @@ class Task:
         format_string = ('%-' + duplen + 's')
         dupprefix = format_string % 'also:'
 
-        text = '%s - %4s %-13s %-19s' % (
+        text = '%s - %s %-13s %-19s' % (
             dupprefix,
             self.get_flags(),
             ('%s' % self.status),
