@@ -98,7 +98,7 @@ Those are "date of the last update", "importance" and "assignee" (if there is an
 ### Further options and use cases of bug expiration
 
 The expiration is defined as 60 days of inactivity in server-next tagged bugs, and 180 days for the other ubuntu-server subscribed bugs.
-These duration's as well as the tag it considers for the "active" list can be tuned via the arguments, --expire-tagged, --expire and --tag.
+These durations as well as the tag it considers for the "active" list can be tuned via the arguments, --expire-tagged, --expire and --tag.
 This can be combined with a custom bug subscriber to be useful outside of the server team triage.
 So the following example for example will list any bugs subscribed by hardcoredev which are inactive for 5 or more days with the tag super-urgent.
 
@@ -120,7 +120,7 @@ It turned out to be a common need to identify differences since the last
 meeting. Since the situation in launchpad might have changed (dropped tag,
 closed the bug, assigned to other teams, changed subscription) and not all of
 them can be detected from launchpad-api after the fast ustriage now also
-provides the option to save and compare a list of stored bugs
+provides the option to save and compare a list of stored bugs.
 On a usual run checking tagged bugs one can add -S to save the reported
 bugs to a file. It is recommended to include the timestamp like:
 `-S ~/savebugs/todo-$(date -I'seconds').yaml`
