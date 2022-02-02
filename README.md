@@ -31,7 +31,7 @@ ustriage 2016-09-10
 
 ### Two Date Arguments
 
-If two dates are given then all the bugs found on those days and between (fully inclusive) wil be found. For example, the following, finds all bugs last modified on the 10th, 11th, and 12th of September:
+If two dates are given then all the bugs found on those days and between (fully inclusive) will be found. For example, the following, finds all bugs last modified on the 10th, 11th, and 12th of September:
 
 ```bash
 ustriage 2016-09-10 2016-09-12
@@ -98,7 +98,7 @@ Those are "date of the last update", "importance" and "assignee" (if there is an
 ### Further options and use cases of bug expiration
 
 The expiration is defined as 60 days of inactivity in server-next tagged bugs, and 180 days for the other ubuntu-server subscribed bugs.
-These durations as well as the tag it considers for the "active" list can be tuned via the arguments, --expire-tagged, --expire and --tag.
+These duration's as well as the tag it considers for the "active" list can be tuned via the arguments, --expire-tagged, --expire and --tag.
 This can be combined with a custom bug subscriber to be useful outside of the server team triage.
 So the following example for example will list any bugs subscribed by hardcoredev which are inactive for 5 or more days with the tag super-urgent.
 
