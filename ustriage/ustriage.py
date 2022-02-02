@@ -273,7 +273,7 @@ def parse_dates(start, end=None):
 
 def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
                limit_subscribed=None, oder_by_date=False, is_sorted=False,
-               extended=False, filename_save=False, filename_compare=False):
+               extended=False, filename_save=None, filename_compare=None):
     """Print the tasks in a clean-ish format."""
     blacklist = blacklist or []
 
@@ -306,7 +306,7 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
 
     opened = False
     former_bugs = []
-    if filename_compare:
+    if filename_compare is not None:
         with open(filename_compare, "r", encoding='utf-8') as comparebugs:
             former_bugs = yaml.safe_load(comparebugs)
 
@@ -330,12 +330,12 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
                 time.sleep(5)
         reportedbugs.append(task.number)
 
-    if filename_save:
+    if filename_save is not None:
         with open(filename_save, "w", encoding='utf-8') as savebugs:
             yaml.dump(reportedbugs, stream=savebugs)
         print("Saved reported bugs in %s" % filename_save)
 
-    if filename_compare:
+    if filename_compare is not None:
         closed_bugs = [x for x in former_bugs if x not in reportedbugs]
         logging.info('')
         logging.info('---')
@@ -545,7 +545,7 @@ def report_current_backlog(lpname):
 def print_tagged_bugs(lpname, expiration, date_range, open_browser,
                       shortlinks, blacklist, activitysubscribers,
                       tags, extended,
-                      filename_save=False, filename_compare=False):
+                      filename_save=None, filename_compare=None):
     """Print tagged bugs.
 
     Print tagged bugs, optionally those that have not been
@@ -623,7 +623,7 @@ def main(date_range=None, debug=False, open_browser=None,
          show_no_triage=False, show_tagged=False, show_subscribed=False,
          limit_subscribed=None, blacklist=None, tags=None,
          extended=False, age=False,
-         filename_save=False, filename_compare=False):
+         filename_save=None, filename_compare=None):
     """Connect to Launchpad, get range of bugs, print 'em."""
     if tags is None:
         tags = ["server-next"]
@@ -809,11 +809,11 @@ def launch():
                              ' days (default disabled in triage, 7 days in '
                              ' tag/subscription search)')
     parser.add_argument('-S', '--save-tagged-bugs',
-                        default=False,
+                        default=None,
                         dest='filename_save',
                         help='Save the list of reported tagged bugs to file')
     parser.add_argument('-C', '--compare-tagged-bugs-to',
-                        default=False,
+                        default=None,
                         dest='filename_compare',
                         help='Compare the reported tagged bugs to file')
 
