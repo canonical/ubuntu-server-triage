@@ -162,11 +162,9 @@ class Task:
             )
             bug_url = format_string % self.url
 
-        flags = self.get_flags(newbug)
-
         text = '%s - %4s %-13s %-19s' % (
             bug_url,
-            flags,
+            self.get_flags(newbug),
             ('%s' % self.status),
             ('[%s]' % truncate_string(self.src, 16))
         )
@@ -189,11 +187,9 @@ class Task:
         format_string = ('%-' + duplen + 's')
         dupprefix = format_string % 'also:'
 
-        flags = self.get_flags()
-
         text = '%s - %4s %-13s %-19s' % (
             dupprefix,
-            flags,
+            self.get_flags(),
             ('%s' % self.status),
             ('[%s]' % truncate_string(self.src, 16))
         )
