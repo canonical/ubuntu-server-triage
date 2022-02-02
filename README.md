@@ -149,3 +149,8 @@ This shows the most recent and the oldest 20 entries that are `ubuntu-server` su
 ```bash
 ustriage --no-show-triage --show-subscribed --show-subscribed-max 20 --extended-format
 ```
+
+Note: The file format on the save/compare feature isn't well defined, do
+consider it experimental as it might change without warning. OTOH right now
+being just a yaml list of bug numbers makes it very easy to - if needed - modify
+it.
