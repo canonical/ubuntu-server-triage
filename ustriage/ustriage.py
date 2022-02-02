@@ -811,11 +811,11 @@ def launch():
     parser.add_argument('-S', '--save-tagged-bugs',
                         default=False,
                         dest='filename_save',
-                        help='Save the list of reported tagged bugs to %file')
+                        help='Save the list of reported tagged bugs to file')
     parser.add_argument('-C', '--compare-tagged-bugs-to',
                         default=False,
                         dest='filename_compare',
-                        help='Compare the reported tagged bugs to %file')
+                        help='Compare the reported tagged bugs to file')
 
     args = parser.parse_args()
 
