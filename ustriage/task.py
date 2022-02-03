@@ -133,18 +133,22 @@ class Task:
         }[self.obj.target.resource_type_link]
         return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
-    def get_flags(self):
-        """Get flags representing the status of the task."""
+    def get_flags(self, newbug=False):
+        """Get flags representing the status of the task.
+
+        Note: This has to stay a fixed length string to maintain the layout
+        """
         flags = ''
-        if self.subscribed:
-            flags += '*'
-        if self.last_activity_ours:
-            flags += '+'
-        if self.AGE and self.date_last_updated > self.AGE:
+        flags += '*' if self.subscribed else ' '
+        flags += '+' if self.last_activity_ours else ' '
+        if (self.AGE and self.date_last_updated > self.AGE):
             flags += 'U'
+        else:
+            flags += ' '
+        flags += 'N' if newbug else ' '
         return flags
 
-    def compose_pretty(self, shortlinks=True, extended=False):
+    def compose_pretty(self, shortlinks=True, extended=False, newbug=False):
         """Compose a printable line of relevant information."""
         if shortlinks:
             format_string = (
@@ -161,11 +165,9 @@ class Task:
             )
             bug_url = format_string % self.url
 
-        flags = self.get_flags()
-
-        text = '%s - %3s %-13s %-19s' % (
+        text = '%s - %s %-13s %-19s' % (
             bug_url,
-            flags,
+            self.get_flags(newbug),
             ('%s' % self.status),
             ('[%s]' % truncate_string(self.src, 16))
         )
@@ -188,11 +190,9 @@ class Task:
         format_string = ('%-' + duplen + 's')
         dupprefix = format_string % 'also:'
 
-        flags = self.get_flags()
-
-        text = '%s - %3s %-13s %-19s' % (
+        text = '%s - %s %-13s %-19s' % (
             dupprefix,
-            flags,
+            self.get_flags(),
             ('%s' % self.status),
             ('[%s]' % truncate_string(self.src, 16))
         )

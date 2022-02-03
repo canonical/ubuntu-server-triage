@@ -31,7 +31,7 @@ ustriage 2016-09-10
 
 ### Two Date Arguments
 
-If two dates are given then all the bugs found on those days and between (fully inclusive) wil be found. For example, the following, finds all bugs last modified on the 10th, 11th, and 12th of September:
+If two dates are given then all the bugs found on those days and between (fully inclusive) will be found. For example, the following, finds all bugs last modified on the 10th, 11th, and 12th of September:
 
 ```bash
 ustriage 2016-09-10 2016-09-12
@@ -116,8 +116,29 @@ ubuntu-server as our current two levels of [bug tracking](https://github.com/can
 Thereby one can easily check all our current subscribed and `server-next`
 tagged bugs (or any other tag via `--tag`):
 
+It turned out to be a common need to identify differences since the last
+meeting. Since the situation in launchpad might have changed (dropped tag,
+closed the bug, assigned to other teams, changed subscription) and not all of
+them can be detected from launchpad-api after the fast ustriage now also
+provides the option to save and compare a list of stored bugs.
+On a usual run checking tagged bugs one can add -S to save the reported
+bugs to a file. It is recommended to include the timestamp like:
+`-S ~/savebugs/todo-$(date -I'seconds').yaml`
+
+On later runs ustriage can compare the current set of bugs with any such stored
+list and report new bugs (flag "N") and reports a list of cases gone from the
+report.
+
+Furthermore a common need is to see which bugs have had any updates recently.
+The option `--flag-recent` allows to specify an amount of days (we use 6
+usually) that will make a bug touched in that period get an updated flag "U"
+in the report.
+
+All that combined means that we usually run two command for our weekly checks
+
 ```bash
-ustriage --no-show-triage --show-tagged --extended-format
+ustriage --no-show-triage --extended --show-tagged --tag server-todo --flag-recent 6 -S ~/savebugs/todo-$(date -I'seconds').yaml -C ~/savebugs/todo-2022-02-01T12:45:10+01:00.yaml
+ustriage --no-show-triage --extended --show-tagged --tag server-next --flag-recent 6 -S ~/savebugs/next-$(date -I'seconds').yaml -C ~/savebugs/next-2022-02-01T12:45:16+01:00.yaml
 ```
 
 Or our bigger backlog of any open `ubuntu-server` (or any other via --lpname)
@@ -128,3 +149,8 @@ This shows the most recent and the oldest 20 entries that are `ubuntu-server` su
 ```bash
 ustriage --no-show-triage --show-subscribed --show-subscribed-max 20 --extended-format
 ```
+
+Note: The file format on the save/compare feature isn't well defined, do
+consider it experimental as it might change without warning. OTOH right now
+being just a yaml list of bug numbers makes it very easy to - if needed - modify
+it.

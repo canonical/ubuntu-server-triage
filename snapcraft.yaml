@@ -32,3 +32,4 @@ parts:
         stage-packages:
             - python3-dateutil
             - python3-launchpadlib
+            - python3-yaml
