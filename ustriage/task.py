@@ -24,6 +24,10 @@ SOURCE_PACKAGE_RESOURCE_TYPE_LINK = (
     'https://api.launchpad.net/devel/#source_package'
 )
 
+PROJECT_RESOURCE_TYPE_LINK = (
+    'https://api.launchpad.net/devel/#project'
+)
+
 
 def truncate_string(text, length=20):
     """Truncate string and hint visually if truncated."""
@@ -130,6 +134,7 @@ class Task:
             DISTRIBUTION_RESOURCE_TYPE_LINK: 4,
             DISTRIBUTION_SOURCE_PACKAGE_RESOURCE_TYPE_LINK: 5,
             SOURCE_PACKAGE_RESOURCE_TYPE_LINK: 6,
+            PROJECT_RESOURCE_TYPE_LINK: 7,
         }[self.obj.target.resource_type_link]
         return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
