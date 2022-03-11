@@ -70,7 +70,7 @@ ustriage --lpname paelzer --bugsubscriber 2016-08-20 2016-09-20
 
 ## Bug expiration
 
-To have some kind of tracking of the bugs subscribed by ubuntu-server as well as those tagged server-next we have to make sure that we identify those that are dormant for too long.
+To have some kind of tracking of the bugs subscribed by ubuntu-server as well as those tagged server-todo we have to make sure that we identify those that are dormant for too long.
 Therefore by default bug expiration info is now added to the output by default.
 
 Since these lists can be rather huge they are not opened in a browser by default.
@@ -97,7 +97,7 @@ Those are "date of the last update", "importance" and "assignee" (if there is an
 
 ### Further options and use cases of bug expiration
 
-The expiration is defined as 60 days of inactivity in server-next tagged bugs, and 180 days for the other ubuntu-server subscribed bugs.
+The expiration is defined as 60 days of inactivity in server-todo tagged bugs, and 180 days for the other ubuntu-server subscribed bugs.
 These durations as well as the tag it considers for the "active" list can be tuned via the arguments, --expire-tagged, --expire and --tag.
 This can be combined with a custom bug subscriber to be useful outside of the server team triage.
 So the following example for example will list any bugs subscribed by hardcoredev which are inactive for 5 or more days with the tag super-urgent.
@@ -110,10 +110,10 @@ ustriage 2016-09-10 2016-09-12 --expire-tagged 5 --tag super-urgent --bugsubscri
 
 One can disable the default triage output via `--no-show-triage` and instead
 request lists of tagged bugs `--show-tagged` or just subscribed `--show-subscribed`.
-This is pretty handy on bug housekeeping as we use server-next and subscription to
+This is pretty handy on bug housekeeping as we use server-todo and subscription to
 ubuntu-server as our current two levels of [bug tracking](https://github.com/canonical/ubuntu-maintainers-handbook/blob/main/BugTriage.md).
 
-Thereby one can easily check all our current subscribed and `server-next`
+Thereby one can easily check all our current subscribed and `server-todo`
 tagged bugs (or any other tag via `--tag`):
 
 It turned out to be a common need to identify differences since the last
@@ -134,11 +134,11 @@ The option `--flag-recent` allows to specify an amount of days (we use 6
 usually) that will make a bug touched in that period get an updated flag "U"
 in the report.
 
-All that combined means that we usually run two command for our weekly checks
+All that combined means that we usually run the following command for our
+weekly checks
 
 ```bash
-ustriage --no-show-triage --extended --show-tagged --tag server-todo --flag-recent 6 -S ~/savebugs/todo-$(date -I'seconds').yaml -C ~/savebugs/todo-2022-02-01T12:45:10+01:00.yaml
-ustriage --no-show-triage --extended --show-tagged --tag server-next --flag-recent 6 -S ~/savebugs/next-$(date -I'seconds').yaml -C ~/savebugs/next-2022-02-01T12:45:16+01:00.yaml
+ustriage --no-show-triage --extended --show-tagged --flag-recent 6 -S ~/savebugs/todo-$(date -I'seconds').yaml -C ~/savebugs/todo-2022-02-01T12:45:10+01:00.yaml
 ```
 
 Or our bigger backlog of any open `ubuntu-server` (or any other via --lpname)

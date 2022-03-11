@@ -38,7 +38,7 @@ PACKAGE_BLACKLIST = {
     'ubuntu-advantage-tools',
 }
 TEAMLPNAME = "ubuntu-server"
-DEFAULTTAG = "server-next"
+DEFAULTTAG = "server-todo"
 
 # See the "Merge Board Coordination" specification for details about these tags
 PACKAGING_TASK_TAGS = [
@@ -593,7 +593,7 @@ def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
         logging.info('Bugs subscribed to %s', lpname)
         expire_start = None
         expire_end = None
-        tags = ["-bot-stop-nagging", "-server-next"]
+        tags = ["-bot-stop-nagging", "-server-todo"]
     else:
         logging.info('Bugs subscribed to %s and not touched in %s days',
                      lpname, expiration['expire'])
@@ -626,7 +626,7 @@ def main(date_range=None, debug=False, open_browser=None,
          filename_save=None, filename_compare=None):
     """Connect to Launchpad, get range of bugs, print 'em."""
     if tags is None:
-        tags = ["server-next"]
+        tags = ["server-todo"]
     launchpad = connect_launchpad()
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
                         level=logging.DEBUG if debug else logging.INFO)
@@ -763,7 +763,7 @@ def launch():
                         help='Days to consider subscribed bugs expired if no'
                              ' update happened')
     parser.add_argument('--tag',
-                        default='server-next',
+                        default=DEFAULTTAG,
                         dest='tag',
                         help='Tag that marks bugs (default "%s"). This will be'
                              ' used for tag-expiry as well as --show-tagged'
