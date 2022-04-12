@@ -311,10 +311,20 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
             former_bugs = yaml.safe_load(comparebugs)
 
     reportedbugs = []
+    reported_further_tasks = False
     for task in sorted_filtered_tasks:
         if task.number in reportedbugs:
-            print(task.compose_dup(shortlinks=shortlinks, extended=extended))
+            if reported_further_tasks:
+                print(", ", end='')
+            else:
+                print("Also: ", end='')
+            print("[%s]" % task.compose_dup(extended=extended), end='')
+            reported_further_tasks = True
             continue
+        if reported_further_tasks:
+            # Add newline after additional tasks are complete
+            print()
+        reported_further_tasks = False
 
         newbug = filename_compare and task.number not in former_bugs
         print(task.compose_pretty(shortlinks=shortlinks, extended=extended,
@@ -329,6 +339,10 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
                 opened = True
                 time.sleep(5)
         reportedbugs.append(task.number)
+
+    if reported_further_tasks:
+        # Add newline after additional tasks are complete
+        print()
 
     if filename_save is not None:
         with open(filename_save, "w", encoding='utf-8') as savebugs:

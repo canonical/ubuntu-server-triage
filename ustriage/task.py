@@ -198,28 +198,14 @@ class Task:
         text += ' - %s' % truncate_string(self.short_title, 60)
         return text
 
-    def compose_dup(self, shortlinks=True, extended=False):
+    def compose_dup(self, extended=False):
         """Compose a printable line of reduced information for a dup."""
-        if shortlinks:
-            duplen = str(self.BUG_NUMBER_LENGTH + len(self.SHORTLINK_ROOT))
-        else:
-            duplen = str(self.BUG_NUMBER_LENGTH + len(self.LONG_URL_ROOT))
-        format_string = ('%-' + duplen + 's')
-        dupprefix = format_string % 'also:'
-
-        text = '%s - %s %-13s %-19s' % (
-            dupprefix,
-            self.get_flags(),
+        text = '%s,%s' % (
             ('%s' % self.status),
-            ('[%s]' % truncate_string(self.src, 16))
+            ('%s' % truncate_string(self.src, 16))
         )
-        if extended:
-            text += ' %8s %-10s %-13s' % (
-                "",
-                self.importance,
-                ('' if not self.assignee
-                 else '=> %s' % truncate_string(self.assignee, 9))
-            )
+        if extended and self.assignee:
+            text += ",%s" % truncate_string(self.assignee, 9)
         return text
 
     def sort_key(self):
