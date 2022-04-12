@@ -83,6 +83,12 @@ class Task:
 
     @property
     @lru_cache()
+    def tags(self):
+        """List of the Bugs tags."""
+        return self.obj.bug.tags
+
+    @property
+    @lru_cache()
     def date_last_updated(self):
         """Last update as datetime returned by launchpad."""
         return self.obj.bug.date_last_updated
@@ -151,6 +157,12 @@ class Task:
         else:
             flags += ' '
         flags += 'N' if newbug else ' '
+        if 'verification-needed' in self.tags:
+            flags += 'v'
+        elif 'verification-done' in self.tags:
+            flags += 'V'
+        else:
+            flags += ' '
         return flags
 
     def compose_pretty(self, shortlinks=True, extended=False, newbug=False):
