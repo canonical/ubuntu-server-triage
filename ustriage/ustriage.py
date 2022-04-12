@@ -643,6 +643,8 @@ def main(date_range=None, debug=False, open_browser=None,
     logging.info('\'+\': last bug activity is ours')
     if age:
         logging.info('\'U\': Updated in the last %s days', age)
+    if filename_compare:
+        logging.info('\'N\': New bug compared to %s', filename_compare)
     logging.info('\'v/V\': SRU - v=>needing verfication; V=>verified')
     logging.info('Please be patient, this can take a few minutes...')
 
