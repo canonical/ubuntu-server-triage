@@ -285,11 +285,22 @@ def handle_files(filename_save, filename_compare, reportedbugs, former_bugs,
         logging.info('---')
         logging.info("Bugs gone compared with %s:", filename_compare)
         gone_tasks = bugs_to_tasks(closed_bugs)
-        print_bugs(gone_tasks, open_in_browser=False,
+        print_bugs(gone_tasks, open_in_browser=0,
                    shortlinks=shortlinks, is_sorted=True, extended=extended)
 
 
-def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
+def handle_webbrowser(open_in_browser, url):
+    """Rate limited opening of urls in the browser."""
+    if open_in_browser > 1:
+        webbrowser.open_new_tab(url)
+        time.sleep(1.2)
+    elif open_in_browser == 1:
+        webbrowser.open(url)
+        open_in_browser += 1
+        time.sleep(5)
+
+
+def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
                limit_subscribed=None, oder_by_date=False, is_sorted=False,
                extended=False, filename_save=None, filename_compare=None):
     """Print the tasks in a clean-ish format."""
@@ -322,7 +333,6 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
                    oder_by_date=False, is_sorted=True, extended=extended)
         return
 
-    opened = False
     former_bugs = []
     if filename_compare is not None:
         with open(filename_compare, "r", encoding='utf-8') as comparebugs:
@@ -348,14 +358,7 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
         print(task.compose_pretty(shortlinks=shortlinks, extended=extended,
                                   newbug=newbug))
 
-        if open_in_browser:
-            if opened:
-                webbrowser.open_new_tab(task.url)
-                time.sleep(1.2)
-            else:
-                webbrowser.open(task.url)
-                opened = True
-                time.sleep(5)
+        handle_webbrowser(open_in_browser, task.url)
         reportedbugs.append(task.number)
 
     if reported_further_tasks:
@@ -600,7 +603,7 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
         tags=tags + ["-bot-stop-nagging"],
         status=wanted_statuses
     )
-    print_bugs(bugs, open_browser['exp'], shortlinks,
+    print_bugs(bugs, open_browser, shortlinks,
                blacklist=blacklist, extended=extended,
                filename_save=filename_save, filename_compare=filename_compare)
 
@@ -670,13 +673,13 @@ def main(date_range=None, debug=False, open_browser=None,
     logging.info('Please be patient, this can take a few minutes...')
 
     if show_tagged:
-        print_tagged_bugs(lpname, None, None, open_browser,
+        print_tagged_bugs(lpname, None, None, open_browser['triage'],
                           shortlinks, blacklist, activitysubscribers,
                           tags, extended, filename_save, filename_compare)
 
     if show_subscribed:
         print_subscribed_bugs(lpname, None, None,
-                              open_browser, shortlinks,
+                              open_browser['triage'], shortlinks,
                               blacklist, limit_subscribed, extended)
 
     if show_no_triage:
@@ -724,11 +727,11 @@ def main(date_range=None, debug=False, open_browser=None,
                extended=extended)
 
     if expiration['show_expiration']:
-        print_tagged_bugs(lpname, expiration, date_range, open_browser,
+        print_tagged_bugs(lpname, expiration, date_range, open_browser['exp'],
                           shortlinks, blacklist, activitysubscribers, tags,
                           extended)
         print_subscribed_bugs(lpname, expiration, date_range,
-                              open_browser, shortlinks, blacklist,
+                              open_browser['exp'], shortlinks, blacklist,
                               None, extended)
 
 
@@ -745,10 +748,11 @@ def launch():
                         '(e.g. 2016-07-31)')
     parser.add_argument('-d', '--debug', action='store_true',
                         help='debug output')
-    parser.add_argument('-o', '--open', action='store_true',
-                        help='open in web browser')
-    parser.add_argument('-O', '--open-expire', action='store_true',
-                        dest='openexp',
+    parser.add_argument('-o', '--open', action='store_const',
+                        const=1, default=0,
+                        help='open reported bugs in web browser')
+    parser.add_argument('-O', '--open-expire', action='store_const', const=1,
+                        dest='openexp', default=0,
                         help='open expiring bugs in web browser')
     parser.add_argument('-n', '--lpname', default=TEAMLPNAME,
                         help='specify the launchpad name to search for'
