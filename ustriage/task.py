@@ -45,6 +45,7 @@ class Task:
     SHORTLINK_ROOT = 'LP: #'
     BUG_NUMBER_LENGTH = 7
     AGE = None
+    OLD = None
 
     def __init__(self):
         """Init task object."""
@@ -154,6 +155,8 @@ class Task:
         flags += '+' if self.last_activity_ours else ' '
         if (self.AGE and self.date_last_updated > self.AGE):
             flags += 'U'
+        elif (self.OLD and self.date_last_updated < self.OLD):
+            flags += 'O'
         else:
             flags += ' '
         flags += 'N' if newbug else ' '

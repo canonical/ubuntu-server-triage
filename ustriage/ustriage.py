@@ -646,7 +646,7 @@ def main(date_range=None, debug=False, open_browser=None,
          activitysubscribernames=None, expiration=None,
          show_no_triage=False, show_tagged=False, show_subscribed=False,
          limit_subscribed=None, blacklist=None, tags=None,
-         extended=False, age=False,
+         extended=False, age=False, old=False,
          filename_save=None, filename_compare=None):
     """Connect to Launchpad, get range of bugs, print 'em."""
     if tags is None:
@@ -667,6 +667,8 @@ def main(date_range=None, debug=False, open_browser=None,
     logging.info('\'+\': last bug activity is ours')
     if age:
         logging.info('\'U\': Updated in the last %s days', age)
+    if old:
+        logging.info('\'O\': Not updated in the last %s days', old)
     if filename_compare:
         logging.info('\'N\': New bug compared to %s', filename_compare)
     logging.info('\'v/V\': SRU - v=>needing verfication; V=>verified')
@@ -834,7 +836,14 @@ def launch():
                         type=int,
                         dest='age',
                         help='Mark bugs touched more recently than this many'
-                             ' days (default disabled in triage, 7 days in '
+                             ' days (default disabled in triage, 6 days in '
+                             ' tag/subscription search)')
+    parser.add_argument('--flag-old',
+                        default=False,
+                        type=int,
+                        dest='old',
+                        help='Mark bugs not touched for this many days'
+                             ' (default disabled in triage, 90 days in '
                              ' tag/subscription search)')
     parser.add_argument('-S', '--save-tagged-bugs',
                         default=None,
@@ -856,16 +865,21 @@ def launch():
                   'end': args.end_date}
 
     if args.age is False and (args.show_subscribed or args.show_tagged):
-        args.age = 7
+        args.age = 6
     if args.age is not False:
         Task.AGE = datetime.now(timezone.utc) - timedelta(days=args.age)
+    if args.old is False and (args.show_subscribed or args.show_tagged):
+        args.old = 90
+    if args.old is not False:
+        Task.OLD = datetime.now(timezone.utc) - timedelta(days=args.old)
 
     main(date_range, args.debug, open_browser,
          args.lpname, args.bugsubscriber, not args.fullurls,
          args.activitysubscribers, expiration, args.show_no_triage,
          args.show_tagged, args.show_subscribed, args.limit_subscribed,
          blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
-         tags=[args.tag], extended=args.extended_format, age=args.age,
+         tags=[args.tag], extended=args.extended_format,
+         age=args.age, old=args.old,
          filename_save=args.filename_save,
          filename_compare=args.filename_compare)
 
