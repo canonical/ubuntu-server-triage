@@ -271,6 +271,24 @@ def parse_dates(start, end=None):
     return start, end
 
 
+def handle_files(filename_save, filename_compare, reportedbugs, former_bugs,
+                 shortlinks, extended):
+    """Handle saving and comparing to saved lists of bugs."""
+    if filename_save is not None:
+        with open(filename_save, "w", encoding='utf-8') as savebugs:
+            yaml.dump(reportedbugs, stream=savebugs)
+        print("Saved reported bugs in %s" % filename_save)
+
+    if filename_compare is not None:
+        closed_bugs = [x for x in former_bugs if x not in reportedbugs]
+        logging.info('')
+        logging.info('---')
+        logging.info("Bugs gone compared with %s:", filename_compare)
+        gone_tasks = bugs_to_tasks(closed_bugs)
+        print_bugs(gone_tasks, open_in_browser=False,
+                   shortlinks=shortlinks, is_sorted=True, extended=extended)
+
+
 def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
                limit_subscribed=None, oder_by_date=False, is_sorted=False,
                extended=False, filename_save=None, filename_compare=None):
@@ -344,19 +362,8 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
         # Add newline after additional tasks are complete
         print()
 
-    if filename_save is not None:
-        with open(filename_save, "w", encoding='utf-8') as savebugs:
-            yaml.dump(reportedbugs, stream=savebugs)
-        print("Saved reported bugs in %s" % filename_save)
-
-    if filename_compare is not None:
-        closed_bugs = [x for x in former_bugs if x not in reportedbugs]
-        logging.info('')
-        logging.info('---')
-        logging.info("Bugs gone compared with %s:", filename_compare)
-        gone_tasks = bugs_to_tasks(closed_bugs)
-        print_bugs(gone_tasks, open_in_browser=False,
-                   shortlinks=shortlinks, is_sorted=True, extended=extended)
+    handle_files(filename_save, filename_compare, reportedbugs, former_bugs,
+                 shortlinks=shortlinks, extended=extended)
 
 
 def last_activity_ours(task, activitysubscribers):
