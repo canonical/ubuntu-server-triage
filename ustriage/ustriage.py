@@ -641,6 +641,22 @@ def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
                oder_by_date=True, extended=extended)
 
 
+def show_header(lpname, age, old, filename_compare):
+    """Show the dynamic header depending on commandline arguments."""
+    logging.info('Ubuntu Server Triage helper')
+    logging.info('Symbols:')
+    logging.info('\'*\': %s is directly subscribed', lpname)
+    logging.info('\'+\': last bug activity is ours')
+    if age:
+        logging.info('\'U\': Updated in the last %s days', age)
+    if old:
+        logging.info('\'O\': Not updated in the last %s days', old)
+    if filename_compare:
+        logging.info('\'N\': New bug compared to %s', filename_compare)
+    logging.info('\'v/V\': SRU - v=>needing verfication; V=>verified')
+    logging.info('Please be patient, this can take a few minutes...')
+
+
 def main(date_range=None, debug=False, open_browser=None,
          lpname=TEAMLPNAME, bugsubscriber=False, shortlinks=True,
          activitysubscribernames=None, expiration=None,
@@ -661,18 +677,7 @@ def main(date_range=None, debug=False, open_browser=None,
     else:
         activitysubscribers = []
 
-    logging.info('Ubuntu Server Triage helper')
-    logging.info('Symbols:')
-    logging.info('\'*\': %s is directly subscribed', lpname)
-    logging.info('\'+\': last bug activity is ours')
-    if age:
-        logging.info('\'U\': Updated in the last %s days', age)
-    if old:
-        logging.info('\'O\': Not updated in the last %s days', old)
-    if filename_compare:
-        logging.info('\'N\': New bug compared to %s', filename_compare)
-    logging.info('\'v/V\': SRU - v=>needing verfication; V=>verified')
-    logging.info('Please be patient, this can take a few minutes...')
+    show_header(lpname, age, old, filename_compare)
 
     if show_tagged:
         print_tagged_bugs(lpname, None, None, open_browser['triage'],
