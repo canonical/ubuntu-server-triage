@@ -39,6 +39,8 @@ PACKAGE_BLACKLIST = {
 }
 TEAMLPNAME = "ubuntu-server"
 DEFAULTTAG = "server-todo"
+FLAG_RECENT_AGE = 6
+FLAG_OLD_AGE = 90
 
 # See the "Merge Board Coordination" specification for details about these tags
 PACKAGING_TASK_TAGS = [
@@ -841,15 +843,15 @@ def launch():
                         type=int,
                         dest='age',
                         help='Mark bugs touched more recently than this many'
-                             ' days (default disabled in triage, 6 days in '
-                             ' tag/subscription search)')
+                             ' days (default: disabled in triage, %s days in'
+                             ' tag/subscription search)' % FLAG_RECENT_AGE)
     parser.add_argument('--flag-old',
                         default=False,
                         type=int,
                         dest='old',
                         help='Mark bugs not touched for this many days'
-                             ' (default disabled in triage, 90 days in '
-                             ' tag/subscription search)')
+                             ' (default: disabled in triage, %s days in'
+                             ' tag/subscription search)' % FLAG_OLD_AGE)
     parser.add_argument('-S', '--save-tagged-bugs',
                         default=None,
                         dest='filename_save',
@@ -870,11 +872,11 @@ def launch():
                   'end': args.end_date}
 
     if args.age is False and (args.show_subscribed or args.show_tagged):
-        args.age = 6
+        args.age = FLAG_RECENT_AGE
     if args.age is not False:
         Task.AGE = datetime.now(timezone.utc) - timedelta(days=args.age)
     if args.old is False and (args.show_subscribed or args.show_tagged):
-        args.old = 90
+        args.old = FLAG_OLD_AGE
     if args.old is not False:
         Task.OLD = datetime.now(timezone.utc) - timedelta(days=args.old)
 
