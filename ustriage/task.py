@@ -45,6 +45,7 @@ class Task:
     SHORTLINK_ROOT = 'LP: #'
     BUG_NUMBER_LENGTH = 7
     AGE = None
+    OLD = None
 
     def __init__(self):
         """Init task object."""
@@ -80,6 +81,12 @@ class Task:
         # This could be str(self.obj.bug.id) but using self.title is
         # significantly faster
         return self.title.split(' ')[1].replace('#', '')
+
+    @property
+    @lru_cache()
+    def tags(self):
+        """List of the Bugs tags."""
+        return self.obj.bug.tags
 
     @property
     @lru_cache()
@@ -148,9 +155,17 @@ class Task:
         flags += '+' if self.last_activity_ours else ' '
         if (self.AGE and self.date_last_updated > self.AGE):
             flags += 'U'
+        elif (self.OLD and self.date_last_updated < self.OLD):
+            flags += 'O'
         else:
             flags += ' '
         flags += 'N' if newbug else ' '
+        if 'verification-needed' in self.tags:
+            flags += 'v'
+        elif 'verification-done' in self.tags:
+            flags += 'V'
+        else:
+            flags += ' '
         return flags
 
     def compose_pretty(self, shortlinks=True, extended=False, newbug=False):
@@ -186,28 +201,14 @@ class Task:
         text += ' - %s' % truncate_string(self.short_title, 60)
         return text
 
-    def compose_dup(self, shortlinks=True, extended=False):
+    def compose_dup(self, extended=False):
         """Compose a printable line of reduced information for a dup."""
-        if shortlinks:
-            duplen = str(self.BUG_NUMBER_LENGTH + len(self.SHORTLINK_ROOT))
-        else:
-            duplen = str(self.BUG_NUMBER_LENGTH + len(self.LONG_URL_ROOT))
-        format_string = ('%-' + duplen + 's')
-        dupprefix = format_string % 'also:'
-
-        text = '%s - %s %-13s %-19s' % (
-            dupprefix,
-            self.get_flags(),
+        text = '%s,%s' % (
             ('%s' % self.status),
-            ('[%s]' % truncate_string(self.src, 16))
+            ('%s' % truncate_string(self.src, 16))
         )
-        if extended:
-            text += ' %8s %-10s %-13s' % (
-                "",
-                self.importance,
-                ('' if not self.assignee
-                 else '=> %s' % truncate_string(self.assignee, 9))
-            )
+        if extended and self.assignee:
+            text += ",%s" % truncate_string(self.assignee, 9)
         return text
 
     def sort_key(self):

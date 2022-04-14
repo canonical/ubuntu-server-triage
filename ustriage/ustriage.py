@@ -39,6 +39,8 @@ PACKAGE_BLACKLIST = {
 }
 TEAMLPNAME = "ubuntu-server"
 DEFAULTTAG = "server-todo"
+FLAG_RECENT_AGE = 6
+FLAG_OLD_AGE = 90
 
 # See the "Merge Board Coordination" specification for details about these tags
 PACKAGING_TASK_TAGS = [
@@ -271,7 +273,36 @@ def parse_dates(start, end=None):
     return start, end
 
 
-def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
+def handle_files(filename_save, filename_compare, reportedbugs, former_bugs,
+                 shortlinks, extended):
+    """Handle saving and comparing to saved lists of bugs."""
+    if filename_save is not None:
+        with open(filename_save, "w", encoding='utf-8') as savebugs:
+            yaml.dump(reportedbugs, stream=savebugs)
+        print("Saved reported bugs in %s" % filename_save)
+
+    if filename_compare is not None:
+        closed_bugs = [x for x in former_bugs if x not in reportedbugs]
+        logging.info('')
+        logging.info('---')
+        logging.info("Bugs gone compared with %s:", filename_compare)
+        gone_tasks = bugs_to_tasks(closed_bugs)
+        print_bugs(gone_tasks, open_in_browser=0,
+                   shortlinks=shortlinks, is_sorted=True, extended=extended)
+
+
+def handle_webbrowser(open_in_browser, url):
+    """Rate limited opening of urls in the browser."""
+    if open_in_browser > 1:
+        webbrowser.open_new_tab(url)
+        time.sleep(1.2)
+    elif open_in_browser == 1:
+        webbrowser.open(url)
+        open_in_browser += 1
+        time.sleep(5)
+
+
+def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
                limit_subscribed=None, oder_by_date=False, is_sorted=False,
                extended=False, filename_save=None, filename_compare=None):
     """Print the tasks in a clean-ish format."""
@@ -304,45 +335,40 @@ def print_bugs(tasks, open_in_browser=False, shortlinks=True, blacklist=None,
                    oder_by_date=False, is_sorted=True, extended=extended)
         return
 
-    opened = False
     former_bugs = []
     if filename_compare is not None:
         with open(filename_compare, "r", encoding='utf-8') as comparebugs:
             former_bugs = yaml.safe_load(comparebugs)
 
     reportedbugs = []
+    reported_further_tasks = False
     for task in sorted_filtered_tasks:
         if task.number in reportedbugs:
-            print(task.compose_dup(shortlinks=shortlinks, extended=extended))
+            if reported_further_tasks:
+                print(", ", end='')
+            else:
+                print("Also: ", end='')
+            print("[%s]" % task.compose_dup(extended=extended), end='')
+            reported_further_tasks = True
             continue
+        if reported_further_tasks:
+            # Add newline after additional tasks are complete
+            print()
+        reported_further_tasks = False
 
         newbug = filename_compare and task.number not in former_bugs
         print(task.compose_pretty(shortlinks=shortlinks, extended=extended,
                                   newbug=newbug))
 
-        if open_in_browser:
-            if opened:
-                webbrowser.open_new_tab(task.url)
-                time.sleep(1.2)
-            else:
-                webbrowser.open(task.url)
-                opened = True
-                time.sleep(5)
+        handle_webbrowser(open_in_browser, task.url)
         reportedbugs.append(task.number)
 
-    if filename_save is not None:
-        with open(filename_save, "w", encoding='utf-8') as savebugs:
-            yaml.dump(reportedbugs, stream=savebugs)
-        print("Saved reported bugs in %s" % filename_save)
+    if reported_further_tasks:
+        # Add newline after additional tasks are complete
+        print()
 
-    if filename_compare is not None:
-        closed_bugs = [x for x in former_bugs if x not in reportedbugs]
-        logging.info('')
-        logging.info('---')
-        logging.info("Bugs gone compared with %s:", filename_compare)
-        gone_tasks = bugs_to_tasks(closed_bugs)
-        print_bugs(gone_tasks, open_in_browser=False,
-                   shortlinks=shortlinks, is_sorted=True, extended=extended)
+    handle_files(filename_save, filename_compare, reportedbugs, former_bugs,
+                 shortlinks=shortlinks, extended=extended)
 
 
 def last_activity_ours(task, activitysubscribers):
@@ -579,7 +605,7 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
         tags=tags + ["-bot-stop-nagging"],
         status=wanted_statuses
     )
-    print_bugs(bugs, open_browser['exp'], shortlinks,
+    print_bugs(bugs, open_browser, shortlinks,
                blacklist=blacklist, extended=extended,
                filename_save=filename_save, filename_compare=filename_compare)
 
@@ -617,12 +643,28 @@ def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
                oder_by_date=True, extended=extended)
 
 
+def show_header(lpname, age, old, filename_compare):
+    """Show the dynamic header depending on commandline arguments."""
+    logging.info('Ubuntu Server Triage helper')
+    logging.info('Symbols:')
+    logging.info('\'*\': %s is directly subscribed', lpname)
+    logging.info('\'+\': last bug activity is ours')
+    if age:
+        logging.info('\'U\': Updated in the last %s days', age)
+    if old:
+        logging.info('\'O\': Not updated in the last %s days', old)
+    if filename_compare:
+        logging.info('\'N\': New bug compared to %s', filename_compare)
+    logging.info('\'v/V\': SRU - v=>needing verfication; V=>verified')
+    logging.info('Please be patient, this can take a few minutes...')
+
+
 def main(date_range=None, debug=False, open_browser=None,
          lpname=TEAMLPNAME, bugsubscriber=False, shortlinks=True,
          activitysubscribernames=None, expiration=None,
          show_no_triage=False, show_tagged=False, show_subscribed=False,
          limit_subscribed=None, blacklist=None, tags=None,
-         extended=False, age=False,
+         extended=False, age=False, old=False,
          filename_save=None, filename_compare=None):
     """Connect to Launchpad, get range of bugs, print 'em."""
     if tags is None:
@@ -637,22 +679,16 @@ def main(date_range=None, debug=False, open_browser=None,
     else:
         activitysubscribers = []
 
-    logging.info('Ubuntu Server Triage helper')
-    logging.info('Symbols:')
-    logging.info('\'*\': %s is directly subscribed', lpname)
-    logging.info('\'+\': last bug activity is ours')
-    if age:
-        logging.info('\'U\': Updated in the last %s days', age)
-    logging.info('Please be patient, this can take a few minutes...')
+    show_header(lpname, age, old, filename_compare)
 
     if show_tagged:
-        print_tagged_bugs(lpname, None, None, open_browser,
+        print_tagged_bugs(lpname, None, None, open_browser['triage'],
                           shortlinks, blacklist, activitysubscribers,
                           tags, extended, filename_save, filename_compare)
 
     if show_subscribed:
         print_subscribed_bugs(lpname, None, None,
-                              open_browser, shortlinks,
+                              open_browser['triage'], shortlinks,
                               blacklist, limit_subscribed, extended)
 
     if show_no_triage:
@@ -700,11 +736,11 @@ def main(date_range=None, debug=False, open_browser=None,
                extended=extended)
 
     if expiration['show_expiration']:
-        print_tagged_bugs(lpname, expiration, date_range, open_browser,
+        print_tagged_bugs(lpname, expiration, date_range, open_browser['exp'],
                           shortlinks, blacklist, activitysubscribers, tags,
                           extended)
         print_subscribed_bugs(lpname, expiration, date_range,
-                              open_browser, shortlinks, blacklist,
+                              open_browser['exp'], shortlinks, blacklist,
                               None, extended)
 
 
@@ -721,10 +757,11 @@ def launch():
                         '(e.g. 2016-07-31)')
     parser.add_argument('-d', '--debug', action='store_true',
                         help='debug output')
-    parser.add_argument('-o', '--open', action='store_true',
-                        help='open in web browser')
-    parser.add_argument('-O', '--open-expire', action='store_true',
-                        dest='openexp',
+    parser.add_argument('-o', '--open', action='store_const',
+                        const=1, default=0,
+                        help='open reported bugs in web browser')
+    parser.add_argument('-O', '--open-expire', action='store_const', const=1,
+                        dest='openexp', default=0,
                         help='open expiring bugs in web browser')
     parser.add_argument('-n', '--lpname', default=TEAMLPNAME,
                         help='specify the launchpad name to search for'
@@ -806,8 +843,15 @@ def launch():
                         type=int,
                         dest='age',
                         help='Mark bugs touched more recently than this many'
-                             ' days (default disabled in triage, 7 days in '
-                             ' tag/subscription search)')
+                             ' days (default: disabled in triage, %s days in'
+                             ' tag/subscription search)' % FLAG_RECENT_AGE)
+    parser.add_argument('--flag-old',
+                        default=False,
+                        type=int,
+                        dest='old',
+                        help='Mark bugs not touched for this many days'
+                             ' (default: disabled in triage, %s days in'
+                             ' tag/subscription search)' % FLAG_OLD_AGE)
     parser.add_argument('-S', '--save-tagged-bugs',
                         default=None,
                         dest='filename_save',
@@ -828,16 +872,21 @@ def launch():
                   'end': args.end_date}
 
     if args.age is False and (args.show_subscribed or args.show_tagged):
-        args.age = 7
+        args.age = FLAG_RECENT_AGE
     if args.age is not False:
         Task.AGE = datetime.now(timezone.utc) - timedelta(days=args.age)
+    if args.old is False and (args.show_subscribed or args.show_tagged):
+        args.old = FLAG_OLD_AGE
+    if args.old is not False:
+        Task.OLD = datetime.now(timezone.utc) - timedelta(days=args.old)
 
     main(date_range, args.debug, open_browser,
          args.lpname, args.bugsubscriber, not args.fullurls,
          args.activitysubscribers, expiration, args.show_no_triage,
          args.show_tagged, args.show_subscribed, args.limit_subscribed,
          blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
-         tags=[args.tag], extended=args.extended_format, age=args.age,
+         tags=[args.tag], extended=args.extended_format,
+         age=args.age, old=args.old,
          filename_save=args.filename_save,
          filename_compare=args.filename_compare)
 
