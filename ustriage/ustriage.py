@@ -638,7 +638,7 @@ def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
         tags=tags,
         status=OPEN_BUG_STATUSES,
     )
-    print_bugs(bugs, open_browser['exp'], shortlinks,
+    print_bugs(bugs, open_browser, shortlinks,
                blacklist=blacklist, limit_subscribed=limit_subscribed,
                oder_by_date=True, extended=extended)
 
