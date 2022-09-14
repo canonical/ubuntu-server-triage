@@ -674,7 +674,7 @@ def main(date_range=None, debug=False, open_browser=None,
                         level=logging.DEBUG if debug else logging.INFO)
     if activitysubscribernames:
         activitysubscribers = (
-            launchpad.people[activitysubscribernames].members
+            launchpad.people[activitysubscribernames].participants
         )
     else:
         activitysubscribers = []
