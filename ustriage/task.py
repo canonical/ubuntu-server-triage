@@ -160,9 +160,11 @@ class Task:
         else:
             flags += ' '
         flags += 'N' if newbug else ' '
-        if 'verification-needed' in self.tags:
+        if any('verification-needed-' in tag for tag in self.tags):
             flags += 'v'
-        elif 'verification-done' in self.tags:
+        else:
+            flags += ' '
+        if any('verification-done-' in tag for tag in self.tags):
             flags += 'V'
         else:
             flags += ' '
