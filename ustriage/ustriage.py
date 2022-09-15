@@ -358,7 +358,8 @@ def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
 
         newbug = filename_compare and task.number not in former_bugs
         print(task.compose_pretty(shortlinks=shortlinks, extended=extended,
-                                  newbug=newbug))
+                                  newbug=newbug,
+                                  open_bug_statuses=OPEN_BUG_STATUSES))
 
         handle_webbrowser(open_in_browser, task.url)
         reportedbugs.append(task.number)

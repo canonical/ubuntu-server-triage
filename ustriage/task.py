@@ -145,6 +145,39 @@ class Task:
         }[self.obj.target.resource_type_link]
         return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
+    def get_releases(self, open_bug_statuses):
+        """List of chars reflecting per release status.
+
+        Gets a list of chars, one per supported release that show if that task
+        exists (present) and is open (lower case) or closed (upper case).
+
+        Note: This has to stay a fixed length string to maintain the layout
+        """
+        releaseinfo = ''
+
+        # breaking the URL is faster than checking it all through API
+        for task in self.obj.bug.bug_tasks:
+            task_elements = str(task).split('/')
+            # skip root element and other projects
+            if task_elements[4] != 'ubuntu':
+                continue
+            # Only care for the task that we high-level report about
+            if task_elements[-3] != str(self.src):
+                continue
+
+            # get first char of release (devel = d)
+            relchar = task_elements[5][0]
+            if relchar == '+':
+                relchar = "d"
+
+            # report closed tasks as upper case
+            if task.status in open_bug_statuses:
+                releaseinfo += relchar
+            else:
+                releaseinfo += relchar.upper()
+
+        return releaseinfo
+
     def get_flags(self, newbug=False):
         """Get flags representing the status of the task.
 
@@ -170,7 +203,8 @@ class Task:
             flags += ' '
         return flags
 
-    def compose_pretty(self, shortlinks=True, extended=False, newbug=False):
+    def compose_pretty(self, shortlinks=True, extended=False, newbug=False,
+                       open_bug_statuses=None):
         """Compose a printable line of relevant information."""
         if shortlinks:
             format_string = (
@@ -187,9 +221,10 @@ class Task:
             )
             bug_url = format_string % self.url
 
-        text = '%s - %s %-13s %-19s' % (
+        text = '%s - %s %-6s %-13s %-19s' % (
             bug_url,
             self.get_flags(newbug),
+            self.get_releases(open_bug_statuses),
             ('%s' % self.status),
             ('[%s]' % truncate_string(self.src, 16))
         )
