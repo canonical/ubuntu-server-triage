@@ -317,7 +317,9 @@ def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
             reverse=oder_by_date
         )
 
-    logging.info('Found %s bugs', len(sorted_filtered_tasks))
+    logging.info('Found %s bugs\n', len(sorted_filtered_tasks))
+
+    logging.info(Task.get_header(extended=extended))
 
     if (limit_subscribed is not None and
             len(sorted_filtered_tasks) > limit_subscribed):

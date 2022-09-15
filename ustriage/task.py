@@ -64,6 +64,24 @@ class Task:
             setattr(self, key, value)
         return self
 
+    @staticmethod
+    def get_header(extended=False):
+        """Return a header matching the compose_pretty output."""
+        text = '%-12s | %-6s | %-7s | %-13s | %-19s |' % (
+            "Bug",
+            "Flags",
+            "Release",
+            "Status",
+            "Package")
+        if extended:
+            text += ' %-8s | %-10s | %-13s |' % (
+                "Last Upd",
+                "Prio",
+                "Assignee"
+            )
+        text += ' %-70s |' % "Title"
+        return text
+
     @property
     def url(self):
         """User-facing URL of the task."""
@@ -221,21 +239,21 @@ class Task:
             )
             bug_url = format_string % self.url
 
-        text = '%s - %s %-6s %-13s %-19s' % (
+        text = '%-12s | %6s | %-7s | %-13s | %-19s |' % (
             bug_url,
             self.get_flags(newbug),
             self.get_releases(open_bug_statuses),
             ('%s' % self.status),
-            ('[%s]' % truncate_string(self.src, 16))
+            ('%s' % truncate_string(self.src, 19))
         )
         if extended:
-            text += ' %8s %-10s %-13s' % (
+            text += ' %8s | %-10s | %-13s |' % (
                 self.date_last_updated.strftime('%d.%m.%y'),
                 self.importance,
                 ('' if not self.assignee
-                 else '=> %s' % truncate_string(self.assignee, 9))
+                 else '%s' % truncate_string(self.assignee, 12))
             )
-        text += ' - %s' % truncate_string(self.short_title, 60)
+        text += ' %70s |' % truncate_string(self.short_title, 70)
         return text
 
     def compose_dup(self, extended=False):
