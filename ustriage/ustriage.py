@@ -279,7 +279,7 @@ def handle_files(filename_save, filename_compare, reportedbugs, former_bugs,
     if filename_save is not None:
         with open(filename_save, "w", encoding='utf-8') as savebugs:
             yaml.dump(reportedbugs, stream=savebugs)
-        print("Saved reported bugs in %s" % filename_save)
+        logging.info("Saved reported bugs in %s", filename_save)
 
     if filename_compare is not None:
         closed_bugs = [x for x in former_bugs if x not in reportedbugs]
@@ -343,32 +343,32 @@ def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
             former_bugs = yaml.safe_load(comparebugs)
 
     reportedbugs = []
-    reported_further_tasks = False
+    further_tasks = ""
     for task in sorted_filtered_tasks:
         if task.number in reportedbugs:
-            if reported_further_tasks:
-                print(", ", end='')
+            if further_tasks != "":
+                further_tasks += ", "
             else:
-                print("Also: ", end='')
-            print("[%s]" % task.compose_dup(extended=extended), end='')
-            reported_further_tasks = True
+                further_tasks += "Also: "
+            further_tasks += "[%s]" % task.compose_dup(extended=extended)
             continue
-        if reported_further_tasks:
-            # Add newline after additional tasks are complete
-            print()
-        reported_further_tasks = False
+        if further_tasks != "":
+            logging.info(further_tasks)
+            further_tasks = ""
 
         newbug = filename_compare and task.number not in former_bugs
-        print(task.compose_pretty(shortlinks=shortlinks, extended=extended,
-                                  newbug=newbug,
-                                  open_bug_statuses=OPEN_BUG_STATUSES))
+        logging.info(task.compose_pretty(shortlinks=shortlinks,
+                                         extended=extended,
+                                         newbug=newbug,
+                                         open_bug_statuses=OPEN_BUG_STATUSES))
 
         handle_webbrowser(open_in_browser, task.url)
         reportedbugs.append(task.number)
 
-    if reported_further_tasks:
-        # Add newline after additional tasks are complete
-        print()
+    # There might be one set of further tasks left if no other bug followed
+    if further_tasks != "":
+        logging.info(further_tasks)
+        further_tasks = ""
 
     handle_files(filename_save, filename_compare, reportedbugs, former_bugs,
                  shortlinks=shortlinks, extended=extended)
