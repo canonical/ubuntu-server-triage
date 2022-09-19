@@ -386,7 +386,7 @@ def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
                 further_tasks += "Also: "
             further_tasks += "[%s]" % task.compose_dup(extended=extended)
             continue
-        if further_tasks != "":
+        if further_tasks:
             logging.info(further_tasks)
             further_tasks = ""
 
@@ -401,7 +401,7 @@ def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
         reportedbugs.append(task.number)
 
     # There might be one set of further tasks left if no other bug followed
-    if further_tasks != "":
+    if further_tasks:
         logging.info(further_tasks)
         further_tasks = ""
 
