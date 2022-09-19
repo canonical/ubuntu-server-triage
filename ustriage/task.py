@@ -64,6 +64,24 @@ class Task:
             setattr(self, key, value)
         return self
 
+    @staticmethod
+    def get_header(extended=False):
+        """Return a header matching the compose_pretty output."""
+        text = '%-12s | %-6s | %-7s | %-13s | %-19s |' % (
+            "Bug",
+            "Flags",
+            "Release",
+            "Status",
+            "Package")
+        if extended:
+            text += ' %-8s | %-10s | %-13s |' % (
+                "Last Upd",
+                "Prio",
+                "Assignee"
+            )
+        text += ' %-70s |' % "Title"
+        return text
+
     @property
     def url(self):
         """User-facing URL of the task."""
@@ -145,6 +163,39 @@ class Task:
         }[self.obj.target.resource_type_link]
         return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
+    def get_releases(self, open_bug_statuses):
+        """List of chars reflecting per release status.
+
+        Gets a list of chars, one per supported release that show if that task
+        exists (present) and is open (lower case) or closed (upper case).
+
+        Note: This has to stay a fixed length string to maintain the layout
+        """
+        release_info = ''
+
+        # breaking the URL is faster than checking it all through API
+        for task in self.obj.bug.bug_tasks:
+            task_elements = str(task).split('/')
+            # skip root element and other projects
+            if task_elements[4] != 'ubuntu':
+                continue
+            # Only care for the task that we high-level report about
+            if task_elements[-3] != str(self.src):
+                continue
+
+            # get first char of release (devel = d)
+            release_char = task_elements[5][0]
+            if release_char == '+':
+                release_char = "d"
+
+            # report closed tasks as upper case
+            if task.status in open_bug_statuses:
+                release_info += release_char
+            else:
+                release_info += release_char.upper()
+
+        return release_info
+
     def get_flags(self, newbug=False):
         """Get flags representing the status of the task.
 
@@ -160,15 +211,18 @@ class Task:
         else:
             flags += ' '
         flags += 'N' if newbug else ' '
-        if 'verification-needed' in self.tags:
+        if any('verification-needed-' in tag for tag in self.tags):
             flags += 'v'
-        elif 'verification-done' in self.tags:
+        else:
+            flags += ' '
+        if any('verification-done-' in tag for tag in self.tags):
             flags += 'V'
         else:
             flags += ' '
         return flags
 
-    def compose_pretty(self, shortlinks=True, extended=False, newbug=False):
+    def compose_pretty(self, shortlinks=True, extended=False, newbug=False,
+                       open_bug_statuses=None):
         """Compose a printable line of relevant information."""
         if shortlinks:
             format_string = (
@@ -185,20 +239,21 @@ class Task:
             )
             bug_url = format_string % self.url
 
-        text = '%s - %s %-13s %-19s' % (
+        text = '%-12s | %6s | %-7s | %-13s | %-19s |' % (
             bug_url,
             self.get_flags(newbug),
+            self.get_releases(open_bug_statuses),
             ('%s' % self.status),
-            ('[%s]' % truncate_string(self.src, 16))
+            ('%s' % truncate_string(self.src, 19))
         )
         if extended:
-            text += ' %8s %-10s %-13s' % (
+            text += ' %8s | %-10s | %-13s |' % (
                 self.date_last_updated.strftime('%d.%m.%y'),
                 self.importance,
                 ('' if not self.assignee
-                 else '=> %s' % truncate_string(self.assignee, 9))
+                 else '%s' % truncate_string(self.assignee, 12))
             )
-        text += ' - %s' % truncate_string(self.short_title, 60)
+        text += ' %70s |' % truncate_string(self.short_title, 70)
         return text
 
     def compose_dup(self, extended=False):

@@ -82,6 +82,8 @@ DISTRIBUTION_RESOURCE_TYPE_LINK = (
     'https://api.launchpad.net/devel/#distribution'
 )
 
+STR_STRIKETHROUGH = '\u0336'
+
 
 def fast_target_name(obj):
     """Return the name of a bug task's target.
@@ -279,7 +281,7 @@ def handle_files(filename_save, filename_compare, reportedbugs, former_bugs,
     if filename_save is not None:
         with open(filename_save, "w", encoding='utf-8') as savebugs:
             yaml.dump(reportedbugs, stream=savebugs)
-        print("Saved reported bugs in %s" % filename_save)
+        logging.info("Saved reported bugs in %s", filename_save)
 
     if filename_compare is not None:
         closed_bugs = [x for x in former_bugs if x not in reportedbugs]
@@ -302,9 +304,45 @@ def handle_webbrowser(open_in_browser, url):
         time.sleep(5)
 
 
+def print_bug_line(text, task, postponed_bugs):
+    """Format each bug line, like strikethrough for postponed bugs."""
+    if task.number in postponed_bugs:
+        text = STR_STRIKETHROUGH.join(text)
+    logging.info(text)
+
+
+def load_former_bugs(filename_compare):
+    """Load list of former bugs from yaml file."""
+    former_bugs = []
+    if filename_compare is not None:
+        with open(filename_compare, "r", encoding='utf-8') as comparebugs:
+            former_bugs = yaml.safe_load(comparebugs)
+    return former_bugs
+
+
+def load_postponed_bugs(filename_postponed):
+    """Load list of postponed bugs from yaml file, checking the date."""
+    postponed_bugs = []
+    logging.info("\nPostponed bugs:")
+    if filename_postponed is not None:
+        with open(filename_postponed, "r", encoding='utf-8') as postponebugs:
+            pbugs = yaml.safe_load(postponebugs)
+            for pbug in pbugs:
+                postpone_until = datetime.strptime(pbug[1], '%Y-%m-%d')
+                if postpone_until.date() > datetime.now().date():
+                    logging.info("%s postponed until %s", pbug[0],
+                                 postpone_until.strftime('%Y-%m-%d'))
+                    postponed_bugs.append(pbug[0])
+    if not postponed_bugs:
+        logging.info("<None>")
+    logging.info("")
+    return postponed_bugs
+
+
 def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
                limit_subscribed=None, oder_by_date=False, is_sorted=False,
-               extended=False, filename_save=None, filename_compare=None):
+               extended=False, filename_save=None, filename_compare=None,
+               filename_postponed=None):
     """Print the tasks in a clean-ish format."""
     blacklist = blacklist or []
 
@@ -317,7 +355,12 @@ def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
             reverse=oder_by_date
         )
 
-    logging.info('Found %s bugs', len(sorted_filtered_tasks))
+    former_bugs = load_former_bugs(filename_compare,)
+    postponed_bugs = load_postponed_bugs(filename_postponed)
+
+    logging.info('Found %s bugs\n', len(sorted_filtered_tasks))
+
+    logging.info(Task.get_header(extended=extended))
 
     if (limit_subscribed is not None and
             len(sorted_filtered_tasks) > limit_subscribed):
@@ -335,37 +378,34 @@ def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
                    oder_by_date=False, is_sorted=True, extended=extended)
         return
 
-    former_bugs = []
-    if filename_compare is not None:
-        with open(filename_compare, "r", encoding='utf-8') as comparebugs:
-            former_bugs = yaml.safe_load(comparebugs)
-
     reportedbugs = []
-    reported_further_tasks = False
+    further_tasks = ""
     for task in sorted_filtered_tasks:
         if task.number in reportedbugs:
-            if reported_further_tasks:
-                print(", ", end='')
+            if further_tasks != "":
+                further_tasks += ", "
             else:
-                print("Also: ", end='')
-            print("[%s]" % task.compose_dup(extended=extended), end='')
-            reported_further_tasks = True
+                further_tasks += "Also: "
+            further_tasks += "[%s]" % task.compose_dup(extended=extended)
             continue
-        if reported_further_tasks:
-            # Add newline after additional tasks are complete
-            print()
-        reported_further_tasks = False
+        if further_tasks:
+            logging.info(further_tasks)
+            further_tasks = ""
 
         newbug = filename_compare and task.number not in former_bugs
-        print(task.compose_pretty(shortlinks=shortlinks, extended=extended,
-                                  newbug=newbug))
+        bugtext = task.compose_pretty(shortlinks=shortlinks,
+                                      extended=extended,
+                                      newbug=newbug,
+                                      open_bug_statuses=OPEN_BUG_STATUSES)
+        print_bug_line(bugtext, task, postponed_bugs)
 
         handle_webbrowser(open_in_browser, task.url)
         reportedbugs.append(task.number)
 
-    if reported_further_tasks:
-        # Add newline after additional tasks are complete
-        print()
+    # There might be one set of further tasks left if no other bug followed
+    if further_tasks:
+        logging.info(further_tasks)
+        further_tasks = ""
 
     handle_files(filename_save, filename_compare, reportedbugs, former_bugs,
                  shortlinks=shortlinks, extended=extended)
@@ -571,7 +611,8 @@ def report_current_backlog(lpname):
 def print_tagged_bugs(lpname, expiration, date_range, open_browser,
                       shortlinks, blacklist, activitysubscribers,
                       tags, extended,
-                      filename_save=None, filename_compare=None):
+                      filename_save=None,
+                      filename_compare=None, filename_postponed=None):
     """Print tagged bugs.
 
     Print tagged bugs, optionally those that have not been
@@ -607,7 +648,9 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
     )
     print_bugs(bugs, open_browser, shortlinks,
                blacklist=blacklist, extended=extended,
-               filename_save=filename_save, filename_compare=filename_compare)
+               filename_save=filename_save,
+               filename_compare=filename_compare,
+               filename_postponed=filename_postponed)
 
 
 def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
@@ -665,7 +708,7 @@ def main(date_range=None, debug=False, open_browser=None,
          show_no_triage=False, show_tagged=False, show_subscribed=False,
          limit_subscribed=None, blacklist=None, tags=None,
          extended=False, age=False, old=False,
-         filename_save=None, filename_compare=None):
+         filename_save=None, filename_compare=None, filename_postponed=None):
     """Connect to Launchpad, get range of bugs, print 'em."""
     if tags is None:
         tags = ["server-todo"]
@@ -684,7 +727,8 @@ def main(date_range=None, debug=False, open_browser=None,
     if show_tagged:
         print_tagged_bugs(lpname, None, None, open_browser['triage'],
                           shortlinks, blacklist, activitysubscribers,
-                          tags, extended, filename_save, filename_compare)
+                          tags, extended, filename_save, filename_compare,
+                          filename_postponed)
 
     if show_subscribed:
         print_subscribed_bugs(lpname, None, None,
@@ -860,6 +904,10 @@ def launch():
                         default=None,
                         dest='filename_compare',
                         help='Compare the reported tagged bugs to file')
+    parser.add_argument('-P', '--postponed-bugs',
+                        default=None,
+                        dest='filename_postponed',
+                        help='List of [bug, date] to consider postponed')
 
     args = parser.parse_args()
 
@@ -888,7 +936,8 @@ def launch():
          tags=[args.tag], extended=args.extended_format,
          age=args.age, old=args.old,
          filename_save=args.filename_save,
-         filename_compare=args.filename_compare)
+         filename_compare=args.filename_compare,
+         filename_postponed=args.filename_postponed)
 
 
 if __name__ == '__main__':
