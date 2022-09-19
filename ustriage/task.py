@@ -171,7 +171,7 @@ class Task:
 
         Note: This has to stay a fixed length string to maintain the layout
         """
-        releaseinfo = ''
+        release_info = ''
 
         # breaking the URL is faster than checking it all through API
         for task in self.obj.bug.bug_tasks:
@@ -184,17 +184,17 @@ class Task:
                 continue
 
             # get first char of release (devel = d)
-            relchar = task_elements[5][0]
-            if relchar == '+':
-                relchar = "d"
+            release_char = task_elements[5][0]
+            if release_char == '+':
+                release_char = "d"
 
             # report closed tasks as upper case
             if task.status in open_bug_statuses:
-                releaseinfo += relchar
+                release_info += release_char
             else:
-                releaseinfo += relchar.upper()
+                release_info += release_char.upper()
 
-        return releaseinfo
+        return release_info
 
     def get_flags(self, newbug=False):
         """Get flags representing the status of the task.
