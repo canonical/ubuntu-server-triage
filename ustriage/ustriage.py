@@ -82,6 +82,8 @@ DISTRIBUTION_RESOURCE_TYPE_LINK = (
     'https://api.launchpad.net/devel/#distribution'
 )
 
+STR_STRIKETHROUGH = '\u0336'
+
 
 def fast_target_name(obj):
     """Return the name of a bug task's target.
@@ -305,7 +307,7 @@ def handle_webbrowser(open_in_browser, url):
 def print_bug_line(text, task, postponed_bugs):
     """Format each bug line, like strikethrough for postponed bugs."""
     if task.number in postponed_bugs:
-        text = '\u0336'.join(text) + '\u0336'
+        text = STR_STRIKETHROUGH.join(text)
     logging.info(text)
 
 
