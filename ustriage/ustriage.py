@@ -693,7 +693,6 @@ def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
 
 def show_header(lpname, age, old, filename_compare):
     """Show the dynamic header depending on commandline arguments."""
-    logging.info('Ubuntu Server Triage helper')
     logging.info('Symbols:')
     logging.info('\'*\': %s is directly subscribed', lpname)
     logging.info('\'+\': last bug activity is ours')
