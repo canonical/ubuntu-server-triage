@@ -359,6 +359,9 @@ def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
     postponed_bugs = load_postponed_bugs(filename_postponed)
 
     logging.info('Found %s bugs\n', len(sorted_filtered_tasks))
+    if len(sorted_filtered_tasks) == 0:
+        # Do not print header or anything else if the list is empty
+        return
 
     logging.info(Task.get_header(extended=extended))
 
