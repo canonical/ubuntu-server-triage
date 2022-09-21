@@ -622,8 +622,6 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
     Print tagged bugs, optionally those that have not been
     touched in a while.
     """
-    logging.info('')
-
     if expiration is None:
         logging.info('Bugs tagged "%s" and subscribed "%s"', ' '.join(tags),
                      lpname)
@@ -707,8 +705,6 @@ def main(date_range=None, debug=False, open_browser=None,
         )
     else:
         activitysubscribers = []
-
-    logging.info('Please be patient, this can take a few minutes...')
 
     if show_tagged:
         print_tagged_bugs(lpname, None, None, open_browser['triage'],
