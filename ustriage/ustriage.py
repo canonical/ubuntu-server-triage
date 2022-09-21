@@ -658,7 +658,7 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
 
 def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
                           shortlinks, blacklist, limit_subscribed, extended):
-    """Print subscribed bugs - optionalla those not touched in a while."""
+    """Print subscribed bugs - optionally mark those not touched in a while."""
     logging.info('')
     if expiration is None:
         logging.info('Bugs subscribed to %s', lpname)
