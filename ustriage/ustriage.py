@@ -355,8 +355,10 @@ def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
             reverse=oder_by_date
         )
 
-    former_bugs = load_former_bugs(filename_compare,)
-    postponed_bugs = load_postponed_bugs(filename_postponed)
+    if filename_compare is not None:
+        former_bugs = load_former_bugs(filename_compare)
+    if filename_postponed is not None:
+        postponed_bugs = load_postponed_bugs(filename_postponed)
 
     logging.info('Found %s bugs\n', len(sorted_filtered_tasks))
     if len(sorted_filtered_tasks) == 0:
