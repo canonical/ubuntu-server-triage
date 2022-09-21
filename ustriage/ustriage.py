@@ -286,7 +286,6 @@ def handle_files(filename_save, filename_compare, reportedbugs, former_bugs,
     if filename_compare is not None:
         closed_bugs = [x for x in former_bugs if x not in reportedbugs]
         logging.info('')
-        logging.info('---')
         logging.info("Bugs gone compared with %s:", filename_compare)
         gone_tasks = bugs_to_tasks(closed_bugs)
         print_bugs(gone_tasks, open_in_browser=0,
@@ -624,7 +623,6 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
     touched in a while.
     """
     logging.info('')
-    logging.info('---')
 
     if expiration is None:
         logging.info('Bugs tagged "%s" and subscribed "%s"', ' '.join(tags),
@@ -662,7 +660,6 @@ def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
                           shortlinks, blacklist, limit_subscribed, extended):
     """Print subscribed bugs - optionalla those not touched in a while."""
     logging.info('')
-    logging.info('---')
     if expiration is None:
         logging.info('Bugs subscribed to %s', lpname)
         expire_start = None
@@ -746,7 +743,6 @@ def main(date_range=None, debug=False, open_browser=None,
     date_range['start'], date_range['end'] = parse_dates(date_range['start'],
                                                          date_range['end'])
 
-    logging.info('---')
     # Need to display date range as inclusive
     inclusive_start = datetime.strptime(date_range['start'], '%Y-%m-%d')
     inclusive_end = (
