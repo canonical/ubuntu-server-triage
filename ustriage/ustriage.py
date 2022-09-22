@@ -74,6 +74,14 @@ OPEN_BUG_STATUSES = [
     "Fix Committed",
 ]
 
+NOWORK_BUG_STATUSES = [
+    "Opinion",
+    "Invalid",
+    "Won't Fix",
+    "Expired",
+    "Fix Released",
+]
+
 TRACKED_BUG_STATUSES = OPEN_BUG_STATUSES + [
     "Incomplete",
 ]
@@ -397,8 +405,7 @@ def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
         newbug = filename_compare and task.number not in former_bugs
         bugtext = task.compose_pretty(shortlinks=shortlinks,
                                       extended=extended,
-                                      newbug=newbug,
-                                      open_bug_statuses=OPEN_BUG_STATUSES)
+                                      newbug=newbug)
         print_bug_line(bugtext, task, postponed_bugs)
 
         handle_webbrowser(open_in_browser, task.url)
@@ -695,6 +702,9 @@ def main(date_range=None, debug=False, open_browser=None,
     if tags is None:
         tags = ["server-todo"]
     launchpad = connect_launchpad()
+    Task.LP = launchpad
+    Task.NOWORK_BUG_STATUSES = NOWORK_BUG_STATUSES
+    Task.OPEN_BUG_STATUSES = OPEN_BUG_STATUSES
     logging.basicConfig(stream=sys.stdout, format='%(message)s',
                         level=logging.DEBUG if debug else logging.INFO)
     if activitysubscribernames:
@@ -781,9 +791,13 @@ Flags as listed per bug:
 'V': SRU - a release is tagged verified
 
 Release as listed per bug:
-- d: devel release
-- bfj...: initial of the release e.g. j = jammy
-For each of those characters upper case indicates the task is closed
+- D: devel release
+- BFJ...: initial of the release e.g. J = Jammy
+For each of those characters the tool will express:
+  - open => red
+  - SRU in unapproved => orange
+  - closed => green
+  - others (e.g. incomplete) => default color
 '''
 
     parser = argparse.ArgumentParser(
