@@ -313,11 +313,11 @@ class Task:
             flags += ' '
         flags += 'N' if newbug else ' '
         if any('verification-needed-' in tag for tag in self.tags):
-            flags += 'v'
+            flags += mark('v', COLOR_ORANGE)
         else:
             flags += ' '
         if any('verification-done-' in tag for tag in self.tags):
-            flags += 'V'
+            flags += mark('V', COLOR_GREEN)
         else:
             flags += ' '
         return flags
