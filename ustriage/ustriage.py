@@ -286,7 +286,6 @@ def handle_files(filename_save, filename_compare, reportedbugs, former_bugs,
     if filename_compare is not None:
         closed_bugs = [x for x in former_bugs if x not in reportedbugs]
         logging.info('')
-        logging.info('---')
         logging.info("Bugs gone compared with %s:", filename_compare)
         gone_tasks = bugs_to_tasks(closed_bugs)
         print_bugs(gone_tasks, open_in_browser=0,
@@ -355,10 +354,15 @@ def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
             reverse=oder_by_date
         )
 
-    former_bugs = load_former_bugs(filename_compare,)
-    postponed_bugs = load_postponed_bugs(filename_postponed)
+    if filename_compare is not None:
+        former_bugs = load_former_bugs(filename_compare)
+    if filename_postponed is not None:
+        postponed_bugs = load_postponed_bugs(filename_postponed)
 
     logging.info('Found %s bugs\n', len(sorted_filtered_tasks))
+    if len(sorted_filtered_tasks) == 0:
+        # Do not print header or anything else if the list is empty
+        return
 
     logging.info(Task.get_header(extended=extended))
 
@@ -618,9 +622,6 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
     Print tagged bugs, optionally those that have not been
     touched in a while.
     """
-    logging.info('')
-    logging.info('---')
-
     if expiration is None:
         logging.info('Bugs tagged "%s" and subscribed "%s"', ' '.join(tags),
                      lpname)
@@ -655,9 +656,8 @@ def print_tagged_bugs(lpname, expiration, date_range, open_browser,
 
 def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
                           shortlinks, blacklist, limit_subscribed, extended):
-    """Print subscribed bugs - optionalla those not touched in a while."""
+    """Print subscribed bugs - optionally mark those not touched in a while."""
     logging.info('')
-    logging.info('---')
     if expiration is None:
         logging.info('Bugs subscribed to %s', lpname)
         expire_start = None
@@ -686,28 +686,12 @@ def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
                oder_by_date=True, extended=extended)
 
 
-def show_header(lpname, age, old, filename_compare):
-    """Show the dynamic header depending on commandline arguments."""
-    logging.info('Ubuntu Server Triage helper')
-    logging.info('Symbols:')
-    logging.info('\'*\': %s is directly subscribed', lpname)
-    logging.info('\'+\': last bug activity is ours')
-    if age:
-        logging.info('\'U\': Updated in the last %s days', age)
-    if old:
-        logging.info('\'O\': Not updated in the last %s days', old)
-    if filename_compare:
-        logging.info('\'N\': New bug compared to %s', filename_compare)
-    logging.info('\'v/V\': SRU - v=>needing verfication; V=>verified')
-    logging.info('Please be patient, this can take a few minutes...')
-
-
 def main(date_range=None, debug=False, open_browser=None,
          lpname=TEAMLPNAME, bugsubscriber=False, shortlinks=True,
          activitysubscribernames=None, expiration=None,
          show_no_triage=False, show_tagged=False, show_subscribed=False,
          limit_subscribed=None, blacklist=None, tags=None,
-         extended=False, age=False, old=False,
+         extended=False,
          filename_save=None, filename_compare=None, filename_postponed=None):
     """Connect to Launchpad, get range of bugs, print 'em."""
     if tags is None:
@@ -721,8 +705,6 @@ def main(date_range=None, debug=False, open_browser=None,
         )
     else:
         activitysubscribers = []
-
-    show_header(lpname, age, old, filename_compare)
 
     if show_tagged:
         print_tagged_bugs(lpname, None, None, open_browser['triage'],
@@ -742,7 +724,6 @@ def main(date_range=None, debug=False, open_browser=None,
     date_range['start'], date_range['end'] = parse_dates(date_range['start'],
                                                          date_range['end'])
 
-    logging.info('---')
     # Need to display date range as inclusive
     inclusive_start = datetime.strptime(date_range['start'], '%Y-%m-%d')
     inclusive_end = (
@@ -790,7 +771,28 @@ def main(date_range=None, debug=False, open_browser=None,
 
 def launch():
     """Parse arguments provided."""
-    parser = argparse.ArgumentParser()
+    description = 'Triage Helper to deal with launchpad bugs.'
+    epilog = '''
+Flags as listed per bug:
+'*': selected team is directly subscribed to the bug
+'+': last bug activity was by the selected team
+'U': Updated in the last --flag-recent days
+'O': Not updated in the last --flag-old days
+'N': New bug compared to --compare-tagged-bugs-to
+'v': SRU - a release is tagged needing verfication
+'V': SRU - a release is tagged verified
+
+Release as listed per bug:
+- d: devel release
+- bfj...: initial of the release e.g. j = jammy
+For each of those characters upper case indicates the task is closed
+'''
+
+    parser = argparse.ArgumentParser(
+        prog='ustriage',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=description,
+        epilog=epilog)
     parser.add_argument('start_date',
                         nargs='?',
                         help='date to start finding bugs ' +
@@ -809,7 +811,8 @@ def launch():
                         help='open expiring bugs in web browser')
     parser.add_argument('-n', '--lpname', default=TEAMLPNAME,
                         help='specify the launchpad name to search for'
-                             ' (default "%s")' % TEAMLPNAME)
+                             ' (default "%s"). Show * flag if a bug is'
+                             'directly subscribed by that team' % TEAMLPNAME)
     parser.add_argument('-b', '--bugsubscriber', action='store_true',
                         help=('filter name as bug subscriber (default would '
                               'be structural subscriber)'))
@@ -817,7 +820,7 @@ def launch():
                         help='show full URLs instead of shortcuts')
     parser.add_argument('--activitysubscribers',
                         default='ubuntu-server-active-triagers',
-                        help='highlight when last touched by this LP team')
+                        help='Show + flag when last touched by this team')
     parser.add_argument('--no-activitysubscribers',
                         action='store_const',
                         const=None,
@@ -886,15 +889,16 @@ def launch():
                         default=False,
                         type=int,
                         dest='age',
-                        help='Mark bugs touched more recently than this many'
-                             ' days (default: disabled in triage, %s days in'
-                             ' tag/subscription search)' % FLAG_RECENT_AGE)
+                        help='Show U flag for bugs touched more recently than '
+                             'this many days (default: disabled in triage, %s '
+                             'days in tag/subscription search)'
+                             % FLAG_RECENT_AGE)
     parser.add_argument('--flag-old',
                         default=False,
                         type=int,
                         dest='old',
-                        help='Mark bugs not touched for this many days'
-                             ' (default: disabled in triage, %s days in'
+                        help='Show O flag for bugs not touched for this many '
+                             'days (default: disabled in triage, %s days in'
                              ' tag/subscription search)' % FLAG_OLD_AGE)
     parser.add_argument('-S', '--save-tagged-bugs',
                         default=None,
@@ -903,7 +907,8 @@ def launch():
     parser.add_argument('-C', '--compare-tagged-bugs-to',
                         default=None,
                         dest='filename_compare',
-                        help='Compare the reported tagged bugs to file')
+                        help='Compare the reported tagged bugs to file. Lists '
+                        'bugs closed since then and shows N flag on new bugs')
     parser.add_argument('-P', '--postponed-bugs',
                         default=None,
                         dest='filename_postponed',
@@ -934,7 +939,6 @@ def launch():
          args.show_tagged, args.show_subscribed, args.limit_subscribed,
          blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
          tags=[args.tag], extended=args.extended_format,
-         age=args.age, old=args.old,
          filename_save=args.filename_save,
          filename_compare=args.filename_compare,
          filename_postponed=args.filename_postponed)
