@@ -222,7 +222,7 @@ class Task:
         }[self.obj.target.resource_type_link]
         return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
-    def __is_in_unapproved(self, series):
+    def _is_in_unapproved(self, series):
         """Determine if this task is in a -unapproved for a series."""
         # Thanks to Rbasak for the code that inspired this
         ubuntu = Task.LP.distributions["ubuntu"]
@@ -280,7 +280,7 @@ class Task:
             # report closed tasks as upper case
             if task.status in Task.NOWORK_BUG_STATUSES:
                 release_char = mark(release_char, COLOR_GREEN)
-            elif release_char not in 'dD' and self.__is_in_unapproved(series):
+            elif release_char not in 'dD' and self._is_in_unapproved(series):
                 release_char = mark(release_char, COLOR_ORANGE)
             elif task.status in Task.OPEN_BUG_STATUSES:
                 release_char = mark(release_char, COLOR_RED)
