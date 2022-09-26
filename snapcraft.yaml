@@ -33,3 +33,4 @@ parts:
             - python3-dateutil
             - python3-launchpadlib
             - python3-yaml
+            - python3-debian

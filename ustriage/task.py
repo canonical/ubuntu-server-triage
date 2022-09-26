@@ -9,8 +9,13 @@ Copyright 2017-2018 Canonical Ltd.
 Joshua Powers <josh.powers@canonical.com>
 """
 
+import itertools
+import re
+import urllib
+
 from functools import lru_cache
 
+import debian.deb822
 
 DISTRIBUTION_RESOURCE_TYPE_LINK = (
     'https://api.launchpad.net/devel/#distribution'
@@ -28,6 +33,11 @@ PROJECT_RESOURCE_TYPE_LINK = (
     'https://api.launchpad.net/devel/#project'
 )
 
+COLOR_RED = "\033[0;31m"
+COLOR_GREEN = "\033[0;32m"
+COLOR_ORANGE = "\033[0;33m"
+COLOR_RESET = '\033[0m'
+
 
 def truncate_string(text, length=20):
     """Truncate string and hint visually if truncated."""
@@ -38,6 +48,52 @@ def truncate_string(text, length=20):
     return truncated
 
 
+def mark(text, color):
+    """Mark text with the specified color."""
+    return color + text + COLOR_RESET
+
+
+def find_changes_bugs(changes_url):
+    """Return the list of bugs affected by a change URL."""
+    with urllib.request.urlopen(changes_url) as changes_fobj:
+        changes = debian.deb822.Changes(changes_fobj)
+    try:
+        bugs_str = changes["Launchpad-Bugs-Fixed"]
+    except KeyError:
+        return []
+    return bugs_str.split()
+
+
+def get_upload_source_urls(upload):
+    """Get source URLs for an upload."""
+    if upload.contains_source:
+        return upload.sourceFileUrls()
+
+    if upload.contains_copy:
+        try:
+            copy_source_archive = upload.copy_source_archive
+            # Trigger a problem ValueError exception now rather than later
+            # This is magic launchpadlib behaviour: accessing an attribute
+            # of copy_source_archive may fail later on an access permission
+            # issue due to lazy loading.
+            getattr(copy_source_archive, "self_link")
+        except ValueError as err:
+            raise RuntimeError(
+                f"EPERM: {upload} copy_source_archive attribute"
+            ) from err
+        return next(
+            iter(
+                upload.copy_source_archive.getPublishedSources(
+                    source_name=upload.package_name,
+                    version=upload.package_version,
+                    exact_match=True,
+                    order_by_date=True,
+                )
+            )
+        ).sourceFileUrls()
+    raise RuntimeError(f"Cannot find source for {upload}")
+
+
 class Task:
     """Our representation of a Launchpad task."""
 
@@ -46,6 +102,9 @@ class Task:
     BUG_NUMBER_LENGTH = 7
     AGE = None
     OLD = None
+    LP = None
+    NOWORK_BUG_STATUSES = []
+    OPEN_BUG_STATUSES = []
 
     def __init__(self):
         """Init task object."""
@@ -163,8 +222,36 @@ class Task:
         }[self.obj.target.resource_type_link]
         return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
-    def get_releases(self, open_bug_statuses):
-        """List of chars reflecting per release status.
+    def _is_in_unapproved(self, series):
+        """Determine if this task is in a -unapproved for a series."""
+        # Thanks to Rbasak for the code that inspired this
+        ubuntu = Task.LP.distributions["ubuntu"]
+        distro_seriess = [ubuntu.getSeries(name_or_version=series)]
+        uploads = itertools.chain.from_iterable(
+            distro_series.getPackageUploads(pocket="Proposed",
+                                            status="Unapproved",
+                                            exact_match=True,
+                                            name=self.src)
+            for distro_series in distro_seriess
+        )
+        for upload in uploads:
+            try:
+                get_upload_source_urls(upload)
+            except RuntimeError:
+                # Could not get source URLs
+                continue
+            if not upload.changes_file_url:
+                # Could not find changes file
+                continue
+
+            bug_numbers = find_changes_bugs(upload.changes_file_url)
+            if self.number in bug_numbers:
+                return True
+
+        return False
+
+    def get_releases(self, length):
+        """List of one status char per release, padded to printable length.
 
         Gets a list of chars, one per supported release that show if that task
         exists (present) and is open (lower case) or closed (upper case).
@@ -184,15 +271,29 @@ class Task:
                 continue
 
             # get first char of release (devel = d)
-            release_char = task_elements[5][0]
+            series = task_elements[5]
+            release_char = series[0]
             if release_char == '+':
                 release_char = "d"
+            release_char = release_char.upper()
 
             # report closed tasks as upper case
-            if task.status in open_bug_statuses:
-                release_info += release_char
-            else:
-                release_info += release_char.upper()
+            if task.status in Task.NOWORK_BUG_STATUSES:
+                release_char = mark(release_char, COLOR_GREEN)
+            elif release_char not in 'dD' and self._is_in_unapproved(series):
+                release_char = mark(release_char, COLOR_ORANGE)
+            elif task.status in Task.OPEN_BUG_STATUSES:
+                release_char = mark(release_char, COLOR_RED)
+            # Remaining e.g. incomplete stay as-is
+
+            release_info += release_char
+
+        # Due to all the control chars we add, we need to printable to length
+        printable = re.sub('[^A-Z]+', '', release_info, 0)
+        p_len = len(printable)
+        p_need = length - p_len
+        if p_need > 0:
+            release_info += ' '*p_need
 
         return release_info
 
@@ -212,17 +313,16 @@ class Task:
             flags += ' '
         flags += 'N' if newbug else ' '
         if any('verification-needed-' in tag for tag in self.tags):
-            flags += 'v'
+            flags += mark('v', COLOR_ORANGE)
         else:
             flags += ' '
         if any('verification-done-' in tag for tag in self.tags):
-            flags += 'V'
+            flags += mark('V', COLOR_GREEN)
         else:
             flags += ' '
         return flags
 
-    def compose_pretty(self, shortlinks=True, extended=False, newbug=False,
-                       open_bug_statuses=None):
+    def compose_pretty(self, shortlinks=True, extended=False, newbug=False):
         """Compose a printable line of relevant information."""
         if shortlinks:
             format_string = (
@@ -242,7 +342,7 @@ class Task:
         text = '%-12s | %6s | %-7s | %-13s | %-19s |' % (
             bug_url,
             self.get_flags(newbug),
-            self.get_releases(open_bug_statuses),
+            self.get_releases(6),
             ('%s' % self.status),
             ('%s' % truncate_string(self.src, 19))
         )
