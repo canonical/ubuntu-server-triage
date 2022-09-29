@@ -794,10 +794,10 @@ Release as listed per bug:
 - D: devel release
 - BFJ...: initial of the release e.g. J = Jammy
 For each of those characters the tool will express:
-  - open => red
+  - Open => yellow
   - SRU in unapproved => orange
-  - closed => green
-  - others (e.g. incomplete) => default color
+  - Closed => green
+  - Others (e.g. incomplete) => default color
 '''
 
     parser = argparse.ArgumentParser(
