@@ -343,7 +343,7 @@ class Task:
         text = '%-12s | %6s | %-7s | %-13s | %-19s |' % (
             bug_url,
             self.get_flags(newbug),
-            self.get_releases(6),
+            self.get_releases(7),
             ('%s' % self.status),
             ('%s' % truncate_string(self.src, 19))
         )
