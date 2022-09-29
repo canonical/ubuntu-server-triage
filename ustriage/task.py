@@ -139,7 +139,7 @@ class Task:
                 "Prio",
                 "Assignee"
             )
-        text += ' %-70s |' % "Title"
+        text += ' %-60s |' % "Title"
         return text
 
     @property
@@ -354,7 +354,7 @@ class Task:
                 ('' if not self.assignee
                  else '%s' % truncate_string(self.assignee, 12))
             )
-        text += ' %70s |' % truncate_string(self.short_title, 70)
+        text += ' %60s |' % truncate_string(self.short_title, 60)
         return text
 
     def compose_dup(self, extended=False):
