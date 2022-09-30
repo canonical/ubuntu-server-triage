@@ -33,9 +33,10 @@ PROJECT_RESOURCE_TYPE_LINK = (
     'https://api.launchpad.net/devel/#project'
 )
 
-COLOR_RED = "\033[0;31m"
+# We used to use red, but the contrast black/dark-red is video encoded badly
+COLOR_CYAN = "\033[0;36m"
 COLOR_GREEN = "\033[0;32m"
-COLOR_ORANGE = "\033[0;33m"
+COLOR_YELLOW = "\033[0;33m"
 COLOR_RESET = '\033[0m'
 
 
@@ -138,7 +139,7 @@ class Task:
                 "Prio",
                 "Assignee"
             )
-        text += ' %-70s |' % "Title"
+        text += ' %-60s |' % "Title"
         return text
 
     @property
@@ -281,9 +282,9 @@ class Task:
             if task.status in Task.NOWORK_BUG_STATUSES:
                 release_char = mark(release_char, COLOR_GREEN)
             elif release_char not in 'dD' and self._is_in_unapproved(series):
-                release_char = mark(release_char, COLOR_ORANGE)
+                release_char = mark(release_char, COLOR_CYAN)
             elif task.status in Task.OPEN_BUG_STATUSES:
-                release_char = mark(release_char, COLOR_RED)
+                release_char = mark(release_char, COLOR_YELLOW)
             # Remaining e.g. incomplete stay as-is
 
             release_info += release_char
@@ -313,7 +314,7 @@ class Task:
             flags += ' '
         flags += 'N' if newbug else ' '
         if any('verification-needed-' in tag for tag in self.tags):
-            flags += mark('v', COLOR_ORANGE)
+            flags += mark('v', COLOR_CYAN)
         else:
             flags += ' '
         if any('verification-done-' in tag for tag in self.tags):
@@ -342,7 +343,7 @@ class Task:
         text = '%-12s | %6s | %-7s | %-13s | %-19s |' % (
             bug_url,
             self.get_flags(newbug),
-            self.get_releases(6),
+            self.get_releases(7),
             ('%s' % self.status),
             ('%s' % truncate_string(self.src, 19))
         )
@@ -353,7 +354,7 @@ class Task:
                 ('' if not self.assignee
                  else '%s' % truncate_string(self.assignee, 12))
             )
-        text += ' %70s |' % truncate_string(self.short_title, 70)
+        text += ' %60s |' % truncate_string(self.short_title, 60)
         return text
 
     def compose_dup(self, extended=False):

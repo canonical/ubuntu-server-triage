@@ -311,9 +311,25 @@ def handle_webbrowser(open_in_browser, url):
         time.sleep(5)
 
 
+# 7-bit C1 ANSI sequences
+ANSI_ESCAPE = re.compile(r'''
+    \x1B  # ESC
+    (?:   # 7-bit C1 Fe (except CSI)
+        [@-Z\\-_]
+    |     # or [ for CSI, followed by a control sequence
+        \[
+        [0-?]*  # Parameter bytes
+        [ -/]*  # Intermediate bytes
+        [@-~]   # Final byte
+    )
+''', re.VERBOSE)
+
+
 def print_bug_line(text, task, postponed_bugs):
     """Format each bug line, like strikethrough for postponed bugs."""
     if task.number in postponed_bugs:
+        # Other encoding (like colors) conflicts with strikethrough
+        text = ANSI_ESCAPE.sub('', text)
         text = STR_STRIKETHROUGH.join(text)
     logging.info(text)
 
@@ -794,10 +810,10 @@ Release as listed per bug:
 - D: devel release
 - BFJ...: initial of the release e.g. J = Jammy
 For each of those characters the tool will express:
-  - open => red
+  - Open => yellow
   - SRU in unapproved => orange
-  - closed => green
-  - others (e.g. incomplete) => default color
+  - Closed => green
+  - Others (e.g. incomplete) => default color
 '''
 
     parser = argparse.ArgumentParser(
