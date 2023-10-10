@@ -1,6 +1,6 @@
 name: ustriage
 summary: Output Ubuntu Server Launchpad bugs for triage
-base: core18
+base: core22
 type: app
 description: |
   Connect to Launchpad and collect Ubuntu Server bugs for triage.
@@ -8,12 +8,12 @@ description: |
   filtering based on various options.
 
 version: git
-version-script: git rev-parse --short HEAD
 grade: stable
 confinement: strict
 environment:
     LC_ALL: C.UTF-8
     LANG: C.UTF-8
+    PYTHONPATH: $SNAP/usr/lib/python3/dist-packages:$SNAP/usr/lib/python3.10/dist-packages
 
 apps:
     ustriage:
