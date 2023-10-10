@@ -13,6 +13,7 @@ confinement: strict
 environment:
     LC_ALL: C.UTF-8
     LANG: C.UTF-8
+    PYTHONPATH: $SNAP/usr/lib/python3/dist-packages:$SNAP/usr/lib/python3.10/dist-packages
 
 apps:
     ustriage:
