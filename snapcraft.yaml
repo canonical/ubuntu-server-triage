@@ -1,6 +1,6 @@
 name: ustriage
 summary: Output Ubuntu Server Launchpad bugs for triage
-base: core18
+base: core22
 type: app
 description: |
   Connect to Launchpad and collect Ubuntu Server bugs for triage.
