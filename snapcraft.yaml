@@ -8,7 +8,6 @@ description: |
   filtering based on various options.
 
 version: git
-version-script: git rev-parse --short HEAD
 grade: stable
 confinement: strict
 environment:
