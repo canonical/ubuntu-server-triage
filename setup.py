@@ -28,5 +28,5 @@ setup(name='ustriage',
       entry_points={
           'console_scripts': ['ustriage=ustriage.ustriage:launch']
       },
-      install_requires=[],
+      install_requires=['pyyaml', 'python-dateutil'],
       zip_safe=False)
