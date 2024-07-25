@@ -189,8 +189,9 @@ automatically create new revisions which will go to the `latest/edge` channel
 as seen in the [releases](https://snapcraft.io/ustriage/releases) overview.
 
 From there, these new revisions can be verified manually (manually because so far
-we only have superficial tox testing for some basics). Furthermore and most
-meaningful functions need valid launchpad credentials.
+we only have superficial tox testing for some basics). Furthermore, tests are
+mostly manual, because most meaningful functions need valid launchpad
+credentials to be able to be executed.
 
 Builds for code changes can stay in `latest/edge` until we want to push it
 to all users via the channel `latest/stable`. Rebuilds for security reasons
