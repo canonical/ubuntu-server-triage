@@ -162,11 +162,10 @@ Snaps like [ustriage](https://snapcraft.io/ustriage) can be managed via the
 [my snaps interface](https://snapcraft.io/ustriage/listing) on snapcraft.io
 via the snap [release management](https://snapcraft.io/docs/release-management).
 
-There are usually two reasons to build and release a new revision of ustriage.
-On one hand changes we landed in the repository. On the other hand we sometimes
-do no-change rebuilds to pick up updated dependencies. The latter are usually
-needed once we got an automated notification that one such dependency had
-security updates.
+There are usually two reasons to build and release a new revision of ustriage:
+* Changes we landed in the repository
+* Doing no-change rebuilds to pick up updated dependencies
+The latter are usually needed when we get automated notifications that one such dependency had security updates.
 
 #### Builds for Code changes
 
