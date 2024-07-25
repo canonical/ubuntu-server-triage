@@ -170,7 +170,7 @@ The latter are usually needed when we get automated notifications that one such 
 #### Builds for Code changes
 
 The [ustriage snap](https://snapcraft.io/ustriage) is configured to be linked to
-the [repository](https://github.com/canonical/ubuntu-server-triage) and
+this [repository](https://github.com/canonical/ubuntu-server-triage) and
 therefore, whenever we push to the
 [repository](https://github.com/canonical/ubuntu-server-triage) it will
 automatically trigger new builds that one can find in the
