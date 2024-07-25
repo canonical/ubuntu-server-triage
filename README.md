@@ -155,3 +155,51 @@ Note: The file format on the save/compare feature isn't well defined, do
 consider it experimental as it might change without warning. OTOH right now
 being just a yaml list of bug numbers makes it very easy to - if needed - modify
 it.
+
+### Build and release the snap
+
+Snaps like [ustriage](https://snapcraft.io/ustriage) can be managed via the
+[my snaps interface](https://snapcraft.io/ustriage/listing) on snapcraft.io
+via the snap [release management](https://snapcraft.io/docs/release-management).
+
+There are usually two reasons to build and release a new revision of ustriage:
+* Changes we landed in the repository
+* Doing no-change rebuilds to pick up updated dependencies
+The latter are usually needed when we get automated notifications that one such dependency had security updates.
+
+#### Builds for Code changes
+
+The [ustriage snap](https://snapcraft.io/ustriage) is configured to be linked to
+this [repository](https://github.com/canonical/ubuntu-server-triage) and
+therefore, whenever we push to the
+[repository](https://github.com/canonical/ubuntu-server-triage) it will
+automatically trigger new builds that one can find in the
+[builds overview](https://snapcraft.io/ustriage/builds).
+
+#### No change rebuilds
+
+If a rebuild is needed without a code change one can manually hit
+_"Trigger new build"_ at the top of the
+[builds overview](https://snapcraft.io/ustriage/builds) page of the snap.
+
+#### Releasing new snap revisions
+
+No matter which of the two ways above was triggering the builds, they will
+automatically create new revisions which will go to the `latest/edge` channel
+as seen in the [releases](https://snapcraft.io/ustriage/releases) overview.
+
+From there, these new revisions can be verified manually (manually because so far
+we only have superficial tox testing for some basics). Furthermore, tests are
+mostly manual, because most meaningful functions need valid launchpad
+credentials to be able to be executed.
+
+Builds for code changes can stay in `latest/edge` until we want to push it
+to all users via the channel `latest/stable`. Rebuilds for security reasons
+should be pushed to `latest/stable` right after successful verification.
+
+To do so one can hit _"promote"_, which is a hidden button only shown when
+hovering over the revision seen on the
+[releases overview](https://snapcraft.io/ustriage/releases).
+This will show a list of potential channels to promote to, usually
+`latest/stable` will be the target. Once that was done for all architectures
+hit "Save" in the top right and the new release is complete.
