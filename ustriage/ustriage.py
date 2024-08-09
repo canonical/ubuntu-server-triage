@@ -363,7 +363,7 @@ def load_postponed_bugs(filename_postponed):
 
 
 def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
-               limit_subscribed=None, oder_by_date=False, is_sorted=False,
+               limit_subscribed=None, order_by_date=False, is_sorted=False,
                extended=False, filename_save=None, filename_compare=None,
                filename_postponed=None):
     """Print the tasks in a clean-ish format."""
@@ -374,8 +374,8 @@ def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
     else:
         sorted_filtered_tasks = sorted(
             (t for t in tasks if t.src not in blacklist),
-            key=(Task.sort_date if oder_by_date else Task.sort_key),
-            reverse=oder_by_date
+            key=(Task.sort_date if order_by_date else Task.sort_key),
+            reverse=order_by_date
         )
 
     former_bugs = load_former_bugs(filename_compare)
@@ -394,14 +394,14 @@ def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
         logging.info('# Recent tasks #')
         print_bugs(sorted_filtered_tasks[:limit_subscribed],
                    open_in_browser, shortlinks, limit_subscribed=None,
-                   oder_by_date=False, is_sorted=True, extended=extended)
+                   order_by_date=False, is_sorted=True, extended=extended)
         logging.info('---------------------------------------------------')
         logging.info('# Oldest tasks #')
         # https://github.com/PyCQA/pylint/issues/1472
         # pylint: disable=invalid-unary-operand-type
         print_bugs(sorted_filtered_tasks[-limit_subscribed:],
                    open_in_browser, shortlinks, limit_subscribed=None,
-                   oder_by_date=False, is_sorted=True, extended=extended)
+                   order_by_date=False, is_sorted=True, extended=extended)
         return
 
     reportedbugs = []
@@ -704,7 +704,7 @@ def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
     )
     print_bugs(bugs, open_browser, shortlinks,
                blacklist=blacklist, limit_subscribed=limit_subscribed,
-               oder_by_date=True, extended=extended)
+               order_by_date=True, extended=extended)
 
 
 def main(date_range=None, debug=False, open_browser=None,
