@@ -96,7 +96,13 @@ def get_upload_source_urls(upload):
 
 
 class Task:
-    """Our representation of a Launchpad task."""
+    """Launchpad Bug Task.
+
+    Encapsulates the Launchpad representation of a task for a bug
+    reported against a source package.   A bug task tracks the bug's
+    state in different distribution releases, related packages, and
+    remote bug trackers.
+    """
 
     LONG_URL_ROOT = 'https://pad.lv/'
     SHORTLINK_ROOT = 'LP: #'
@@ -114,6 +120,31 @@ class Task:
         # Whether the last activity was by us
         self.last_activity_ours = None
         self.obj = None
+
+    def __str__(self):
+        """Return a human-readable summary of the object.
+
+        :rtype: str
+        :returns: Printable summary of the object.
+        """
+        return f'LP #{self.number:8d} {self.status:12s} {self.title}'
+
+    @lru_cache
+    def to_dict(self):
+        """Return a basic dict structure of the Bug Task's data."""
+        return {
+            "url": self.url,
+            "shortlink": self.shortlink,
+            "number": self.number,
+            "title": self.title,
+            "short_title": self.short_title,
+
+            "source_package": self.src,
+            "importance": self.importance,
+            "status": self.status,
+            "tags": self.tags,
+            "assignee": self.assignee,
+        }
 
     @staticmethod
     def create_from_launchpadlib_object(obj, **kwargs):

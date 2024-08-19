@@ -742,7 +742,11 @@ def main(date_range=None, debug=False, open_browser=None,
                 tags=tags + ["-bot-stop-nagging"],
                 status=TRACKED_BUG_STATUSES
             )
-            json.dump(bugs, sys.stdout, indent=4, default=str)
+            json.dump(
+                [bug.to_dict() for bug in bugs],
+                sys.stdout,
+                indent=4,
+                default=str)
         else:
             print_tagged_bugs(lpname, None, None, open_browser['triage'],
                               shortlinks, blacklist, activitysubscribers,
