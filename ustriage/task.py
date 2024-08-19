@@ -144,6 +144,13 @@ class Task:
             "status": self.status,
             "tags": self.tags,
             "assignee": self.assignee,
+
+            "is_maintainer_subscribed": self.subscribed,
+            "is_last_activity_by_maintainer": self.last_activity_ours,
+            "is_updated_recently": self._is_updated(),
+            "is_old": self._is_old(),
+            "is_verification_needed": self._is_verification_needed(),
+            "is_verification_done": self._is_verification_done(),
         }
 
     @staticmethod
@@ -329,29 +336,32 @@ class Task:
 
         return release_info
 
+    def _is_updated(self):
+        return self.AGE and self.date_last_updated > self.AGE
+
+    def _is_old(self):
+        return self.OLD and self.date_last_updated < self.OLD
+
+    def _is_verification_needed(self):
+        return any('verification-needed-' in tag for tag in self.tags)
+
+    def _is_verification_done(self):
+        return any('verification-done-' in tag for tag in self.tags)
+
     def get_flags(self, newbug=False):
         """Get flags representing the status of the task.
 
         Note: This has to stay a fixed length string to maintain the layout
         """
+        verification_needed = mark('v', COLOR_CYAN)
+        verification_done = mark('V', COLOR_GREEN)
         flags = ''
         flags += '*' if self.subscribed else ' '
         flags += '+' if self.last_activity_ours else ' '
-        if (self.AGE and self.date_last_updated > self.AGE):
-            flags += 'U'
-        elif (self.OLD and self.date_last_updated < self.OLD):
-            flags += 'O'
-        else:
-            flags += ' '
+        flags += 'U' if self._is_updated() else 'O' if self._is_old() else ' '
         flags += 'N' if newbug else ' '
-        if any('verification-needed-' in tag for tag in self.tags):
-            flags += mark('v', COLOR_CYAN)
-        else:
-            flags += ' '
-        if any('verification-done-' in tag for tag in self.tags):
-            flags += mark('V', COLOR_GREEN)
-        else:
-            flags += ' '
+        flags += verification_needed if self._is_verification_needed() else ' '
+        flags += verification_done if self._is_verification_done() else ' '
         return flags
 
     def compose_pretty(self, shortlinks=True, extended=False, newbug=False):
