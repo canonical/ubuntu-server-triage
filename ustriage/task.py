@@ -113,13 +113,28 @@ class Task:
     NOWORK_BUG_STATUSES = []
     OPEN_BUG_STATUSES = []
 
-    def __init__(self):
+    def __init__(self, lp_task=None):
         """Init task object."""
         # Whether the team is subscribed to the bug
         self.subscribed = None
         # Whether the last activity was by us
         self.last_activity_ours = None
-        self.obj = None
+
+        if lp_task:
+            # Some information can be extracted from the task URL itself
+            # without requiring a round-trip to Launchpad
+            task_elements = str(lp_task).split('/')
+            self.distro = task_elements[4]
+            self.source_package_name = task_elements[-3]
+            self.series = task_elements[5]
+            if self.series == '+source':
+                self.series = '-devel'
+            self.obj = lp_task
+        else:
+            self.distro = None
+            self.source_package_name = None
+            self.series = None
+            self.obj = None
 
     def __str__(self):
         """Return a human-readable summary of the object.
@@ -139,7 +154,10 @@ class Task:
             "title": self.title,
             "short_title": self.short_title,
 
+            "distro": self.distro,
             "source_package": self.src,
+            "source_package_name": self.source_package_name,
+            "series": self.series,
             "importance": self.importance,
             "status": self.status,
             "tags": self.tags,
