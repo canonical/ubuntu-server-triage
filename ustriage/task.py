@@ -147,6 +147,19 @@ class Task:
     @lru_cache
     def to_dict(self):
         """Return a basic dict structure of the Bug Task's data."""
+        # breaking the URL is faster than checking it all through API
+        sibling_task_status = {}
+        for series, lp_task in self._sibling_tasks.items():
+            if lp_task.status in Task.NOWORK_BUG_STATUSES:
+                sibling_task_status[series] = 'closed'
+            elif self._is_in_unapproved():
+                sibling_task_status[series] = 'unapproved'
+            elif lp_task.status in Task.OPEN_BUG_STATUSES:
+                sibling_task_status[series] = 'open'
+            else:
+                # Remaining e.g. incomplete stay as-is
+                sibling_task_status[series] = 'pending'
+
         return {
             "url": self.url,
             "shortlink": self.shortlink,
@@ -169,6 +182,8 @@ class Task:
             "is_old": self._is_old(),
             "is_verification_needed": self._is_verification_needed(),
             "is_verification_done": self._is_verification_done(),
+
+            "sibling_task_status": sibling_task_status,
         }
 
     @staticmethod
@@ -279,11 +294,15 @@ class Task:
         }[self.obj.target.resource_type_link]
         return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
-    def _is_in_unapproved(self, series):
+    def _is_in_unapproved(self):
         """Determine if this task is in a -unapproved for a series."""
         # Thanks to Rbasak for the code that inspired this
         ubuntu = Task.LP.distributions["ubuntu"]
-        distro_seriess = [ubuntu.getSeries(name_or_version=series)]
+
+        if not self.series or self.series == '-devel':
+            return None
+
+        distro_seriess = [ubuntu.getSeries(name_or_version=self.series)]
         uploads = itertools.chain.from_iterable(
             distro_series.getPackageUploads(pocket="Proposed",
                                             status="Unapproved",
@@ -307,6 +326,24 @@ class Task:
 
         return False
 
+    @property
+    def _sibling_tasks(self):
+        """Return parent bug's other tasks for this package and distro."""
+        siblings = {}
+        for lp_task in self.obj.bug.bug_tasks:
+            task_elements = str(lp_task).split('/')
+            # skip root element and other projects
+            if task_elements[4] != 'ubuntu':
+                continue
+            # Only care for the task that we high-level report about
+            if task_elements[-3] != str(self.src):
+                continue
+            series = task_elements[5]
+            if series == '+source':
+                series = '-devel'
+            siblings[series] = lp_task
+        return siblings
+
     def get_releases(self, length):
         """List of one status char per release, padded to printable length.
 
@@ -318,28 +355,16 @@ class Task:
         release_info = ''
 
         # breaking the URL is faster than checking it all through API
-        for task in self.obj.bug.bug_tasks:
-            task_elements = str(task).split('/')
-            # skip root element and other projects
-            if task_elements[4] != 'ubuntu':
-                continue
-            # Only care for the task that we high-level report about
-            if task_elements[-3] != str(self.src):
-                continue
-
-            # get first char of release (devel = d)
-            series = task_elements[5]
-            release_char = series[0]
-            if release_char == '+':
-                release_char = "d"
-            release_char = release_char.upper()
+        for series, lp_task in self._sibling_tasks.items():
+            # get first char of release (-devel = d)
+            release_char = 'D' if series[0] == '-' else series[0].upper()
 
             # report closed tasks as upper case
-            if task.status in Task.NOWORK_BUG_STATUSES:
+            if lp_task.status in Task.NOWORK_BUG_STATUSES:
                 release_char = mark(release_char, COLOR_GREEN)
-            elif release_char not in 'dD' and self._is_in_unapproved(series):
+            elif self._is_in_unapproved():
                 release_char = mark(release_char, COLOR_CYAN)
-            elif task.status in Task.OPEN_BUG_STATUSES:
+            elif lp_task.status in Task.OPEN_BUG_STATUSES:
                 release_char = mark(release_char, COLOR_YELLOW)
             # Remaining e.g. incomplete stay as-is
 
