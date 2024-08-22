@@ -16,6 +16,7 @@ import re
 import sys
 import time
 import webbrowser
+import json
 import yaml
 
 import dateutil.parser
@@ -712,7 +713,7 @@ def main(date_range=None, debug=False, open_browser=None,
          activitysubscribernames=None, expiration=None,
          show_no_triage=False, show_tagged=False, show_subscribed=False,
          limit_subscribed=None, blacklist=None, tags=None,
-         extended=False,
+         extended=False, json_format=False,
          filename_save=None, filename_compare=None, filename_postponed=None):
     """Connect to Launchpad, get range of bugs, print 'em."""
     if tags is None:
@@ -731,10 +732,22 @@ def main(date_range=None, debug=False, open_browser=None,
         activitysubscribers = []
 
     if show_tagged:
-        print_tagged_bugs(lpname, None, None, open_browser['triage'],
-                          shortlinks, blacklist, activitysubscribers,
-                          tags, extended, filename_save, filename_compare,
-                          filename_postponed)
+        if json_format:
+            bugs = create_bug_list(
+                None,
+                None,
+                lpname,
+                TEAMLPNAME,
+                activitysubscribers,
+                tags=tags + ["-bot-stop-nagging"],
+                status=TRACKED_BUG_STATUSES
+            )
+            json.dump(bugs, sys.stdout, indent=4, default=str)
+        else:
+            print_tagged_bugs(lpname, None, None, open_browser['triage'],
+                              shortlinks, blacklist, activitysubscribers,
+                              tags, extended, filename_save, filename_compare,
+                              filename_postponed)
 
     if show_subscribed:
         print_subscribed_bugs(lpname, None, None,
@@ -941,6 +954,11 @@ For each of those characters the tool will express:
                         default=None,
                         dest='filename_postponed',
                         help='List of [bug, date] to consider postponed')
+    parser.add_argument('--json',
+                        default=False,
+                        action='store_true',
+                        dest='json_format',
+                        help='Print output in structured JSON format')
 
     args = parser.parse_args()
 
@@ -966,7 +984,9 @@ For each of those characters the tool will express:
          args.activitysubscribers, expiration, args.show_no_triage,
          args.show_tagged, args.show_subscribed, args.limit_subscribed,
          blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
-         tags=[args.tag], extended=args.extended_format,
+         tags=[args.tag],
+         extended=args.extended_format,
+         json_format=args.json_format,
          filename_save=args.filename_save,
          filename_compare=args.filename_compare,
          filename_postponed=args.filename_postponed)
