@@ -16,6 +16,7 @@ import re
 import sys
 import time
 import webbrowser
+import json
 import yaml
 
 import dateutil.parser
@@ -363,7 +364,7 @@ def load_postponed_bugs(filename_postponed):
 
 
 def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
-               limit_subscribed=None, oder_by_date=False, is_sorted=False,
+               limit_subscribed=None, order_by_date=False, is_sorted=False,
                extended=False, filename_save=None, filename_compare=None,
                filename_postponed=None):
     """Print the tasks in a clean-ish format."""
@@ -374,8 +375,8 @@ def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
     else:
         sorted_filtered_tasks = sorted(
             (t for t in tasks if t.src not in blacklist),
-            key=(Task.sort_date if oder_by_date else Task.sort_key),
-            reverse=oder_by_date
+            key=(Task.sort_date if order_by_date else Task.sort_key),
+            reverse=order_by_date
         )
 
     former_bugs = load_former_bugs(filename_compare)
@@ -394,14 +395,14 @@ def print_bugs(tasks, open_in_browser=0, shortlinks=True, blacklist=None,
         logging.info('# Recent tasks #')
         print_bugs(sorted_filtered_tasks[:limit_subscribed],
                    open_in_browser, shortlinks, limit_subscribed=None,
-                   oder_by_date=False, is_sorted=True, extended=extended)
+                   order_by_date=False, is_sorted=True, extended=extended)
         logging.info('---------------------------------------------------')
         logging.info('# Oldest tasks #')
         # https://github.com/PyCQA/pylint/issues/1472
         # pylint: disable=invalid-unary-operand-type
         print_bugs(sorted_filtered_tasks[-limit_subscribed:],
                    open_in_browser, shortlinks, limit_subscribed=None,
-                   oder_by_date=False, is_sorted=True, extended=extended)
+                   order_by_date=False, is_sorted=True, extended=extended)
         return
 
     reportedbugs = []
@@ -704,7 +705,7 @@ def print_subscribed_bugs(lpname, expiration, date_range, open_browser,
     )
     print_bugs(bugs, open_browser, shortlinks,
                blacklist=blacklist, limit_subscribed=limit_subscribed,
-               oder_by_date=True, extended=extended)
+               order_by_date=True, extended=extended)
 
 
 def main(date_range=None, debug=False, open_browser=None,
@@ -712,7 +713,7 @@ def main(date_range=None, debug=False, open_browser=None,
          activitysubscribernames=None, expiration=None,
          show_no_triage=False, show_tagged=False, show_subscribed=False,
          limit_subscribed=None, blacklist=None, tags=None,
-         extended=False,
+         extended=False, json_format=False,
          filename_save=None, filename_compare=None, filename_postponed=None):
     """Connect to Launchpad, get range of bugs, print 'em."""
     if tags is None:
@@ -731,10 +732,26 @@ def main(date_range=None, debug=False, open_browser=None,
         activitysubscribers = []
 
     if show_tagged:
-        print_tagged_bugs(lpname, None, None, open_browser['triage'],
-                          shortlinks, blacklist, activitysubscribers,
-                          tags, extended, filename_save, filename_compare,
-                          filename_postponed)
+        if json_format:
+            bugs = create_bug_list(
+                None,
+                None,
+                lpname,
+                TEAMLPNAME,
+                activitysubscribers,
+                tags=tags + ["-bot-stop-nagging"],
+                status=TRACKED_BUG_STATUSES
+            )
+            json.dump(
+                [bug.to_dict() for bug in bugs],
+                sys.stdout,
+                indent=4,
+                default=str)
+        else:
+            print_tagged_bugs(lpname, None, None, open_browser['triage'],
+                              shortlinks, blacklist, activitysubscribers,
+                              tags, extended, filename_save, filename_compare,
+                              filename_postponed)
 
     if show_subscribed:
         print_subscribed_bugs(lpname, None, None,
@@ -941,6 +958,11 @@ For each of those characters the tool will express:
                         default=None,
                         dest='filename_postponed',
                         help='List of [bug, date] to consider postponed')
+    parser.add_argument('--json',
+                        default=False,
+                        action='store_true',
+                        dest='json_format',
+                        help='Print output in structured JSON format')
 
     args = parser.parse_args()
 
@@ -966,7 +988,9 @@ For each of those characters the tool will express:
          args.activitysubscribers, expiration, args.show_no_triage,
          args.show_tagged, args.show_subscribed, args.limit_subscribed,
          blacklist=None if args.no_blacklist else PACKAGE_BLACKLIST,
-         tags=[args.tag], extended=args.extended_format,
+         tags=[args.tag],
+         extended=args.extended_format,
+         json_format=args.json_format,
          filename_save=args.filename_save,
          filename_compare=args.filename_compare,
          filename_postponed=args.filename_postponed)

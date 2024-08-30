@@ -96,7 +96,13 @@ def get_upload_source_urls(upload):
 
 
 class Task:
-    """Our representation of a Launchpad task."""
+    """Launchpad Bug Task.
+
+    Encapsulates the Launchpad representation of a task for a bug
+    reported against a source package.   A bug task tracks the bug's
+    state in different distribution releases, related packages, and
+    remote bug trackers.
+    """
 
     LONG_URL_ROOT = 'https://pad.lv/'
     SHORTLINK_ROOT = 'LP: #'
@@ -107,13 +113,78 @@ class Task:
     NOWORK_BUG_STATUSES = []
     OPEN_BUG_STATUSES = []
 
-    def __init__(self):
+    def __init__(self, lp_task=None):
         """Init task object."""
         # Whether the team is subscribed to the bug
         self.subscribed = None
         # Whether the last activity was by us
         self.last_activity_ours = None
-        self.obj = None
+
+        if lp_task:
+            # Some information can be extracted from the task URL itself
+            # without requiring a round-trip to Launchpad
+            task_elements = str(lp_task).split('/')
+            self.distro = task_elements[4]
+            self.source_package_name = task_elements[-3]
+            self.series = task_elements[5]
+            if self.series == '+source':
+                self.series = '-devel'
+            self.obj = lp_task
+        else:
+            self.distro = None
+            self.source_package_name = None
+            self.series = None
+            self.obj = None
+
+    def __str__(self):
+        """Return a human-readable summary of the object.
+
+        :rtype: str
+        :returns: Printable summary of the object.
+        """
+        return f'LP #{self.number:8d} {self.status:12s} {self.title}'
+
+    @lru_cache
+    def to_dict(self):
+        """Return a basic dict structure of the Bug Task's data."""
+        # breaking the URL is faster than checking it all through API
+        sibling_task_status = {}
+        for series, lp_task in self._sibling_tasks.items():
+            if lp_task.status in Task.NOWORK_BUG_STATUSES:
+                sibling_task_status[series] = 'closed'
+            elif self._is_in_unapproved():
+                sibling_task_status[series] = 'unapproved'
+            elif lp_task.status in Task.OPEN_BUG_STATUSES:
+                sibling_task_status[series] = 'open'
+            else:
+                # Remaining e.g. incomplete stay as-is
+                sibling_task_status[series] = 'pending'
+
+        return {
+            "url": self.url,
+            "shortlink": self.shortlink,
+            "number": self.number,
+            "title": self.title,
+            "short_title": self.short_title,
+
+            "distro": self.distro,
+            "source_package": self.src,
+            "source_package_name": self.source_package_name,
+            "series": self.series,
+            "importance": self.importance,
+            "status": self.status,
+            "tags": self.tags,
+            "assignee": self.assignee,
+
+            "is_maintainer_subscribed": self.subscribed,
+            "is_last_activity_by_maintainer": self.last_activity_ours,
+            "is_updated_recently": self._is_updated(),
+            "is_old": self._is_old(),
+            "is_verification_needed": self._is_verification_needed(),
+            "is_verification_done": self._is_verification_done(),
+
+            "sibling_task_status": sibling_task_status,
+        }
 
     @staticmethod
     def create_from_launchpadlib_object(obj, **kwargs):
@@ -223,11 +294,15 @@ class Task:
         }[self.obj.target.resource_type_link]
         return ' '.join(self.title.split(' ')[start_field:]).replace('"', '')
 
-    def _is_in_unapproved(self, series):
+    def _is_in_unapproved(self):
         """Determine if this task is in a -unapproved for a series."""
         # Thanks to Rbasak for the code that inspired this
         ubuntu = Task.LP.distributions["ubuntu"]
-        distro_seriess = [ubuntu.getSeries(name_or_version=series)]
+
+        if not self.series or self.series == '-devel':
+            return None
+
+        distro_seriess = [ubuntu.getSeries(name_or_version=self.series)]
         uploads = itertools.chain.from_iterable(
             distro_series.getPackageUploads(pocket="Proposed",
                                             status="Unapproved",
@@ -251,6 +326,24 @@ class Task:
 
         return False
 
+    @property
+    def _sibling_tasks(self):
+        """Return parent bug's other tasks for this package and distro."""
+        siblings = {}
+        for lp_task in self.obj.bug.bug_tasks:
+            task_elements = str(lp_task).split('/')
+            # skip root element and other projects
+            if task_elements[4] != 'ubuntu':
+                continue
+            # Only care for the task that we high-level report about
+            if task_elements[-3] != str(self.src):
+                continue
+            series = task_elements[5]
+            if series == '+source':
+                series = '-devel'
+            siblings[series] = lp_task
+        return siblings
+
     def get_releases(self, length):
         """List of one status char per release, padded to printable length.
 
@@ -262,28 +355,16 @@ class Task:
         release_info = ''
 
         # breaking the URL is faster than checking it all through API
-        for task in self.obj.bug.bug_tasks:
-            task_elements = str(task).split('/')
-            # skip root element and other projects
-            if task_elements[4] != 'ubuntu':
-                continue
-            # Only care for the task that we high-level report about
-            if task_elements[-3] != str(self.src):
-                continue
-
-            # get first char of release (devel = d)
-            series = task_elements[5]
-            release_char = series[0]
-            if release_char == '+':
-                release_char = "d"
-            release_char = release_char.upper()
+        for series, lp_task in self._sibling_tasks.items():
+            # get first char of release (-devel = d)
+            release_char = 'D' if series[0] == '-' else series[0].upper()
 
             # report closed tasks as upper case
-            if task.status in Task.NOWORK_BUG_STATUSES:
+            if lp_task.status in Task.NOWORK_BUG_STATUSES:
                 release_char = mark(release_char, COLOR_GREEN)
-            elif release_char not in 'dD' and self._is_in_unapproved(series):
+            elif self._is_in_unapproved():
                 release_char = mark(release_char, COLOR_CYAN)
-            elif task.status in Task.OPEN_BUG_STATUSES:
+            elif lp_task.status in Task.OPEN_BUG_STATUSES:
                 release_char = mark(release_char, COLOR_YELLOW)
             # Remaining e.g. incomplete stay as-is
 
@@ -298,29 +379,32 @@ class Task:
 
         return release_info
 
+    def _is_updated(self):
+        return self.AGE and self.date_last_updated > self.AGE
+
+    def _is_old(self):
+        return self.OLD and self.date_last_updated < self.OLD
+
+    def _is_verification_needed(self):
+        return any('verification-needed-' in tag for tag in self.tags)
+
+    def _is_verification_done(self):
+        return any('verification-done-' in tag for tag in self.tags)
+
     def get_flags(self, newbug=False):
         """Get flags representing the status of the task.
 
         Note: This has to stay a fixed length string to maintain the layout
         """
+        verification_needed = mark('v', COLOR_CYAN)
+        verification_done = mark('V', COLOR_GREEN)
         flags = ''
         flags += '*' if self.subscribed else ' '
         flags += '+' if self.last_activity_ours else ' '
-        if (self.AGE and self.date_last_updated > self.AGE):
-            flags += 'U'
-        elif (self.OLD and self.date_last_updated < self.OLD):
-            flags += 'O'
-        else:
-            flags += ' '
+        flags += 'U' if self._is_updated() else 'O' if self._is_old() else ' '
         flags += 'N' if newbug else ' '
-        if any('verification-needed-' in tag for tag in self.tags):
-            flags += mark('v', COLOR_CYAN)
-        else:
-            flags += ' '
-        if any('verification-done-' in tag for tag in self.tags):
-            flags += mark('V', COLOR_GREEN)
-        else:
-            flags += ' '
+        flags += verification_needed if self._is_verification_needed() else ' '
+        flags += verification_done if self._is_verification_done() else ' '
         return flags
 
     def compose_pretty(self, shortlinks=True, extended=False, newbug=False):
