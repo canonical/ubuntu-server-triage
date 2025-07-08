@@ -468,7 +468,11 @@ def last_activity_ours(task, activitysubscribers):
                 continue
             raise
 
-    most_recent_activity = activity_list.pop()
+    try:
+        most_recent_activity = activity_list.pop()
+    except IndexError:
+        # No activity found - assume we did not touch it last
+        return False
 
     # Consider anything within an hour of the last activity or message as
     # part of the same action
