@@ -40,6 +40,11 @@ COLOR_YELLOW = "\033[0;33m"
 COLOR_RESET = '\033[0m'
 
 
+def osc8_hyperlink(url, text):
+    """Wrap text with OSC8 hyperlink escape sequences."""
+    return f'\033]8;;{url}\033\\{text}\033]8;;\033\\'
+
+
 def truncate_string(text, length=20):
     """Truncate string and hint visually if truncated."""
     str_text = str(text)
@@ -222,6 +227,16 @@ class Task:
     def shortlink(self):
         """User-facing "shortlink" that gnome-terminal will autolink."""
         return self.SHORTLINK_ROOT + self.number
+
+    @property
+    def url_hyperlink(self):
+        """URL with OSC8 hyperlink escape sequences."""
+        return osc8_hyperlink(self.url, self.url)
+
+    @property
+    def shortlink_hyperlink(self):
+        """Shortlink with OSC8 hyperlink escape sequences."""
+        return osc8_hyperlink(self.url, self.shortlink)
 
     @property
     @lru_cache()
@@ -415,14 +430,14 @@ class Task:
                 str(self.BUG_NUMBER_LENGTH + len(self.SHORTLINK_ROOT)) +
                 's'
             )
-            bug_url = format_string % self.shortlink
+            bug_url = format_string % self.shortlink_hyperlink
         else:
             format_string = (
                 '%-' +
                 str(self.BUG_NUMBER_LENGTH + len(self.LONG_URL_ROOT)) +
                 's'
             )
-            bug_url = format_string % self.url
+            bug_url = format_string % self.url_hyperlink
 
         text = '%-12s | %6s | %-7s | %-13s | %-19s |' % (
             bug_url,
